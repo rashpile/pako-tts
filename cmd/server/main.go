@@ -37,7 +37,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}
-	defer logger.Sync()
+	defer logger.Sync() //nolint:errcheck
 
 	logger.Info("Starting Pako TTS server",
 		zap.Int("port", cfg.Server.Port),
@@ -134,7 +134,7 @@ func main() {
 	worker.Stop()
 
 	// Close queue
-	queue.Close()
+	queue.Close() //nolint:errcheck
 
 	logger.Info("Server stopped")
 }

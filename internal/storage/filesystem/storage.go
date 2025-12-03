@@ -86,7 +86,7 @@ func (s *Storage) Delete(ctx context.Context, jobID string) error {
 	for _, format := range []string{"mp3", "wav"} {
 		filename := fmt.Sprintf("%s.%s", jobID, format)
 		filePath := filepath.Join(s.basePath, filename)
-		os.Remove(filePath) // Ignore errors for non-existent files
+		os.Remove(filePath) //nolint:errcheck // Ignore errors for non-existent files
 	}
 
 	return nil

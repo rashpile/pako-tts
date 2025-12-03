@@ -90,7 +90,7 @@ func (c *Client) TextToSpeech(ctx context.Context, voiceID string, req *TTSReque
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
+		defer resp.Body.Close() //nolint:errcheck
 		errBody, _ := io.ReadAll(resp.Body)
 		return nil, "", fmt.Errorf("ElevenLabs API error (status %d): %s", resp.StatusCode, string(errBody))
 	}
@@ -118,7 +118,7 @@ func (c *Client) GetVoices(ctx context.Context) (*VoicesResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		errBody, _ := io.ReadAll(resp.Body)
@@ -148,7 +148,7 @@ func (c *Client) CheckHealth(ctx context.Context) bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	return resp.StatusCode == http.StatusOK
 }

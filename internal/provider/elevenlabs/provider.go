@@ -71,7 +71,7 @@ func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest)
 
 	// Read all audio data
 	audioData, err := io.ReadAll(audioReader)
-	audioReader.Close()
+	audioReader.Close() //nolint:errcheck
 	if err != nil {
 		return nil, err
 	}

@@ -11,12 +11,12 @@ import (
 func WriteError(w http.ResponseWriter, err *domain.APIError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(err.StatusCode)
-	json.NewEncoder(w).Encode(domain.NewErrorResponse(err))
+	json.NewEncoder(w).Encode(domain.NewErrorResponse(err)) //nolint:errcheck
 }
 
 // WriteJSON writes a JSON response.
 func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	json.NewEncoder(w).Encode(data) //nolint:errcheck
 }

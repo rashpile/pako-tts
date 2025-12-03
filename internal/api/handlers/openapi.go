@@ -38,7 +38,7 @@ func (h *OpenAPIHandler) ServeSpecJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	w.WriteHeader(http.StatusOK)
-	w.Write(h.specJSON)
+	w.Write(h.specJSON) //nolint:errcheck
 }
 
 // ServeSpecYAML handles GET /openapi.yaml and /api/v1/openapi.yaml.
@@ -46,5 +46,5 @@ func (h *OpenAPIHandler) ServeSpecYAML(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/x-yaml")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 	w.WriteHeader(http.StatusOK)
-	w.Write(h.specYAML)
+	w.Write(h.specYAML) //nolint:errcheck
 }

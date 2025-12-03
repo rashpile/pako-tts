@@ -216,7 +216,7 @@ func (h *JobsHandler) GetJobResult(w http.ResponseWriter, r *http.Request) {
 		middleware.WriteError(w, domain.ErrResultExpired)
 		return
 	}
-	defer reader.Close()
+	defer reader.Close() //nolint:errcheck
 
 	// Stream audio response
 	w.Header().Set("Content-Type", contentType)

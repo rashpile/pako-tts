@@ -105,7 +105,7 @@ func (w *Worker) processJob(ctx context.Context, job *domain.Job, logger *zap.Lo
 	estimatedDuration := w.estimateDuration(len(job.Text))
 	estimatedCompletion := time.Now().Add(estimatedDuration)
 	job.UpdateProgress(10, &estimatedCompletion)
-	w.queue.UpdateJob(ctx, job)
+	w.queue.UpdateJob(ctx, job) //nolint:errcheck
 
 	// Build synthesis request
 	req := &domain.SynthesisRequest{
@@ -117,40 +117,40 @@ func (w *Worker) processJob(ctx context.Context, job *domain.Job, logger *zap.Lo
 
 	// Update progress to 30%
 	job.UpdateProgress(30, &estimatedCompletion)
-	w.queue.UpdateJob(ctx, job)
+	w.queue.UpdateJob(ctx, job) //nolint:errcheck
 
 	// Synthesize audio
 	result, err := w.provider.Synthesize(ctx, req)
 	if err != nil {
 		logger.Error("Synthesis failed", zap.Error(err))
 		job.SetFailed(err.Error())
-		w.queue.UpdateJob(ctx, job)
+		w.queue.UpdateJob(ctx, job) //nolint:errcheck
 		return
 	}
 
 	// Update progress to 70%
 	job.UpdateProgress(70, &estimatedCompletion)
-	w.queue.UpdateJob(ctx, job)
+	w.queue.UpdateJob(ctx, job) //nolint:errcheck
 
 	// Read audio data
 	audioData, err := io.ReadAll(result.Audio)
 	if err != nil {
 		logger.Error("Failed to read audio data", zap.Error(err))
 		job.SetFailed(err.Error())
-		w.queue.UpdateJob(ctx, job)
+		w.queue.UpdateJob(ctx, job) //nolint:errcheck
 		return
 	}
 
 	// Update progress to 90%
 	job.UpdateProgress(90, nil)
-	w.queue.UpdateJob(ctx, job)
+	w.queue.UpdateJob(ctx, job) //nolint:errcheck
 
 	// Store audio
 	resultPath, err := w.storage.Store(ctx, job.ID, audioData, job.OutputFormat)
 	if err != nil {
 		logger.Error("Failed to store audio", zap.Error(err))
 		job.SetFailed(err.Error())
-		w.queue.UpdateJob(ctx, job)
+		w.queue.UpdateJob(ctx, job) //nolint:errcheck
 		return
 	}
 
