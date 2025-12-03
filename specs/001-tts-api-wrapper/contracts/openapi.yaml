@@ -1,0 +1,571 @@
+openapi: "3.1.0"
+info:
+  title: Pako TTS
+  description: |
+    ## Text-to-Speech API
+
+    High-performance text-to-speech service powered by ElevenLabs.
+
+    ### Features
+
+    * **Synchronous API**: Direct audio response for short texts (< 5,000 chars)
+    * **Asynchronous Jobs**: Queue-based processing for long texts
+    * **Multiple Voices**: Wide selection of high-quality voices
+    * **Voice Customization**: Adjustable stability, speed, and style
+    * **Job Management**: Real-time status tracking and result retrieval
+    * **Result Expiration**: Automatic cleanup of old audio results
+
+    ### API Modes
+
+    #### Synchronous (for short text)
+    1. **Generate Audio**: `POST /api/v1/tts` with text
+    2. Audio returned directly in response
+
+    #### Asynchronous (for long text)
+    1. **Submit Job**: `POST /api/v1/jobs` with text
+    2. **Track Status**: Poll `GET /api/v1/jobs/{job_id}`
+       - Status: `queued` → `processing` → `completed` (or `failed`)
+    3. **Retrieve Result**: `GET /api/v1/jobs/{job_id}/result`
+
+    ### Limits
+
+    * **Sync Max Text**: 5,000 characters
+    * **Sync Timeout**: 30 seconds
+    * **Result Retention**: 24 hours
+    * **Supported Formats**: MP3, WAV
+
+  contact:
+    name: API Support
+    url: https://github.com/pako-tts
+  license:
+    name: MIT
+  version: "0.0.1"
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: TTS
+    description: Synchronous text-to-speech conversion
+  - name: Jobs
+    description: Asynchronous job management
+  - name: Providers
+    description: TTS provider information
+  - name: Health
+    description: Service health and status
+
+paths:
+  /api/v1/health:
+    get:
+      tags:
+        - Health
+      summary: Health Check
+      description: |
+        Returns service health status and provider availability.
+
+        Does NOT require authentication. Use for monitoring and load balancer health checks.
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: healthy
+                version: "0.0.1"
+                providers:
+                  - name: elevenlabs
+                    available: true
+                    active_jobs: 2
+                    max_concurrent: 4
+
+  /api/v1/tts:
+    post:
+      tags:
+        - TTS
+      summary: Synchronous Text-to-Speech
+      description: |
+        Convert text to speech and return audio directly.
+
+        **Use for**: Short texts under 5,000 characters.
+
+        **Timeout**: 30 seconds. For longer texts, use the async job API.
+
+        **Response**: Audio file (MP3 or WAV based on output_format).
+      operationId: synthesizeTTS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TTSRequest"
+            example:
+              text: "Hello, this is a test of the text-to-speech API."
+              voice_id: "pNInz6obpgDQGcFmaJgB"
+              output_format: "mp3"
+      responses:
+        "200":
+          description: Audio file
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+        "413":
+          description: Text too long for sync endpoint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: TEXT_TOO_LONG
+                  message: "Text exceeds 5000 character limit. Use POST /api/v1/jobs for longer texts."
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Provider Unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/jobs:
+    post:
+      tags:
+        - Jobs
+      summary: Submit TTS Job
+      description: |
+        Submit text for asynchronous processing.
+
+        **Use for**: Any text length, especially long texts that would timeout on sync endpoint.
+
+        **Response**: Job ID for tracking. Poll status via `GET /api/v1/jobs/{job_id}`.
+      operationId: submitJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobCreateRequest"
+            example:
+              text: "This is a long text that will be processed asynchronously..."
+              voice_id: "pNInz6obpgDQGcFmaJgB"
+              provider: "elevenlabs"
+              output_format: "mp3"
+      responses:
+        "201":
+          description: Job Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobCreateResponse"
+              example:
+                job_id: "550e8400-e29b-41d4-a716-446655440000"
+                status: "queued"
+                created_at: "2025-12-03T10:30:00Z"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/jobs/{job_id}:
+    get:
+      tags:
+        - Jobs
+      summary: Get Job Status
+      description: |
+        Get job status and metadata.
+
+        **Status values**:
+        - `queued`: Waiting in queue
+        - `processing`: Currently synthesizing
+        - `completed`: Finished successfully (result available)
+        - `failed`: Error occurred
+      operationId: getJobStatus
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Job identifier
+      responses:
+        "200":
+          description: Job Status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobStatusResponse"
+              example:
+                job_id: "550e8400-e29b-41d4-a716-446655440000"
+                status: "processing"
+                provider_name: "elevenlabs"
+                created_at: "2025-12-03T10:30:00Z"
+                started_at: "2025-12-03T10:30:05Z"
+                progress_percentage: 45.0
+                estimated_completion_at: "2025-12-03T10:32:00Z"
+        "404":
+          description: Job Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: JOB_NOT_FOUND
+                  message: "Job not found"
+
+  /api/v1/jobs/{job_id}/result:
+    get:
+      tags:
+        - Jobs
+      summary: Get Job Result
+      description: |
+        Download the generated audio file for a completed job.
+
+        **Error codes**:
+        - `404`: Job doesn't exist
+        - `410`: Result has expired (>24 hours old)
+        - `425`: Job not yet completed
+      operationId: getJobResult
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Job identifier
+      responses:
+        "200":
+          description: Audio file
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Job Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "410":
+          description: Result Expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: RESULT_EXPIRED
+                  message: "Result has expired. Results are retained for 24 hours."
+        "425":
+          description: Job Not Complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: JOB_NOT_COMPLETE
+                  message: "Job not yet completed. Current status: processing"
+
+  /api/v1/providers:
+    get:
+      tags:
+        - Providers
+      summary: List Providers
+      description: |
+        List all available TTS providers.
+
+        Returns provider information including availability and capacity.
+      operationId: listProviders
+      responses:
+        "200":
+          description: Provider List
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProvidersListResponse"
+              example:
+                providers:
+                  - name: "elevenlabs"
+                    type: "ElevenLabsProvider"
+                    max_concurrent: 4
+                    is_default: true
+                    is_available: true
+                default_provider: "elevenlabs"
+
+components:
+  schemas:
+    TTSRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          maxLength: 5000
+          description: Text to convert to speech (max 5000 characters)
+        voice_id:
+          type: string
+          description: Voice identifier (uses default if not specified)
+        output_format:
+          type: string
+          enum: [mp3, wav]
+          default: mp3
+          description: Audio output format
+        voice_settings:
+          $ref: "#/components/schemas/VoiceSettings"
+
+    JobCreateRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Text to convert to speech (no length limit)
+        voice_id:
+          type: string
+          description: Voice identifier (uses default if not specified)
+        provider:
+          type: string
+          description: Provider name (uses default if not specified)
+        output_format:
+          type: string
+          enum: [mp3, wav]
+          default: mp3
+          description: Audio output format
+        voice_settings:
+          $ref: "#/components/schemas/VoiceSettings"
+
+    VoiceSettings:
+      type: object
+      description: Voice customization parameters
+      properties:
+        stability:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Voice stability (0.0-1.0)
+        similarity_boost:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Voice similarity boost (0.0-1.0)
+        style:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Style exaggeration (0.0-1.0)
+        speed:
+          type: number
+          format: float
+          minimum: 0.7
+          maximum: 1.2
+          description: Speaking speed (0.7-1.2)
+        use_speaker_boost:
+          type: boolean
+          description: Enable speaker boost
+
+    JobCreateResponse:
+      type: object
+      required:
+        - job_id
+        - status
+        - created_at
+      properties:
+        job_id:
+          type: string
+          format: uuid
+          description: Unique job identifier
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        created_at:
+          type: string
+          format: date-time
+          description: Job creation timestamp
+
+    JobStatusResponse:
+      type: object
+      required:
+        - job_id
+        - status
+        - provider_name
+        - created_at
+      properties:
+        job_id:
+          type: string
+          format: uuid
+          description: Unique job identifier
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        provider_name:
+          type: string
+          description: Provider processing this job
+        created_at:
+          type: string
+          format: date-time
+          description: Job creation timestamp
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When processing began
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When job finished
+        progress_percentage:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 100.0
+          default: 0.0
+          description: Processing progress (0-100)
+        estimated_completion_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Estimated completion time
+        error_message:
+          type: string
+          nullable: true
+          description: Error details if failed
+
+    JobStatus:
+      type: string
+      enum:
+        - queued
+        - processing
+        - completed
+        - failed
+      description: Job processing status
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - version
+        - providers
+      properties:
+        status:
+          type: string
+          description: Overall health status (healthy/unhealthy)
+        version:
+          type: string
+          description: API version
+        providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProviderStatusResponse"
+
+    ProviderStatusResponse:
+      type: object
+      required:
+        - name
+        - available
+        - active_jobs
+        - max_concurrent
+      properties:
+        name:
+          type: string
+          description: Provider identifier
+        available:
+          type: boolean
+          description: Whether provider is available
+        active_jobs:
+          type: integer
+          minimum: 0
+          description: Currently processing jobs
+        max_concurrent:
+          type: integer
+          minimum: 1
+          description: Maximum concurrent capacity
+
+    ProviderInfo:
+      type: object
+      required:
+        - name
+        - type
+        - max_concurrent
+        - is_default
+        - is_available
+      properties:
+        name:
+          type: string
+          description: Provider identifier
+        type:
+          type: string
+          description: Provider type/class name
+        max_concurrent:
+          type: integer
+          minimum: 1
+          description: Maximum concurrent jobs
+        is_default:
+          type: boolean
+          description: Whether this is the default provider
+        is_available:
+          type: boolean
+          description: Whether provider is available
+
+    ProvidersListResponse:
+      type: object
+      required:
+        - providers
+        - default_provider
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProviderInfo"
+        default_provider:
+          type: string
+          description: Name of the default provider
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Error code
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              additionalProperties: true
+              description: Additional error details

@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+bin/
+dist/
+build/
+*.exe
+*.test
+*.out
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Agent directories
+.claude/
+.specify/
+
+# Specs and docs (not needed in container)
+specs/
+docs/
+*.md
+!README.md
+
+# Test files
+tests/
+*_test.go
+coverage.*
+
+# Development files
+Makefile
+Dockerfile
+docker-compose*.yml
+.air.toml
+
+# Audio cache (mounted as volume)
+audio_cache/
