@@ -101,7 +101,7 @@ func TestStorage_Retrieve(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to retrieve audio: %v", err)
 	}
-	defer reader.Close()
+	defer reader.Close() //nolint:errcheck
 
 	if contentType != "audio/mpeg" {
 		t.Errorf("Expected content type audio/mpeg, got %s", contentType)
@@ -136,7 +136,7 @@ func TestStorage_Retrieve_WAV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to retrieve audio: %v", err)
 	}
-	defer reader.Close()
+	defer reader.Close() //nolint:errcheck
 
 	if contentType != "audio/wav" {
 		t.Errorf("Expected content type audio/wav, got %s", contentType)
@@ -259,12 +259,12 @@ func TestStorage_CleanupExpired(t *testing.T) {
 	oldFile := filepath.Join(tempDir, "old-job.mp3")
 	newFile := filepath.Join(tempDir, "new-job.mp3")
 
-	os.WriteFile(oldFile, []byte("old"), 0644)
-	os.WriteFile(newFile, []byte("new"), 0644)
+	os.WriteFile(oldFile, []byte("old"), 0644) //nolint:errcheck
+	os.WriteFile(newFile, []byte("new"), 0644) //nolint:errcheck
 
 	// Set old file modification time to 48 hours ago
 	oldTime := time.Now().Add(-48 * time.Hour)
-	os.Chtimes(oldFile, oldTime, oldTime)
+	os.Chtimes(oldFile, oldTime, oldTime) //nolint:errcheck
 
 	// Cleanup with 24 hour retention
 	deleted, err := storage.CleanupExpired(ctx, 24)

@@ -47,7 +47,7 @@ func TestQueue_Enqueue_ClosedQueue(t *testing.T) {
 	queue := NewQueue(10)
 	ctx := context.Background()
 
-	queue.Close()
+	queue.Close() //nolint:errcheck
 
 	job := domain.NewJob("test", "voice", "provider", "mp3", nil)
 	err := queue.Enqueue(ctx, job)
@@ -63,7 +63,7 @@ func TestQueue_Enqueue_ContextCanceled(t *testing.T) {
 
 	// Fill the buffer
 	job1 := domain.NewJob("test1", "voice", "provider", "mp3", nil)
-	queue.Enqueue(ctx, job1)
+	queue.Enqueue(ctx, job1) //nolint:errcheck
 
 	// Cancel context before second enqueue
 	cancel()
@@ -81,7 +81,7 @@ func TestQueue_Dequeue(t *testing.T) {
 	ctx := context.Background()
 
 	job := domain.NewJob("test", "voice", "provider", "mp3", nil)
-	queue.Enqueue(ctx, job)
+	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	dequeuedJob, err := queue.Dequeue(ctx)
 	if err != nil {
@@ -96,7 +96,7 @@ func TestQueue_Dequeue_ClosedQueue(t *testing.T) {
 	queue := NewQueue(10)
 	ctx := context.Background()
 
-	queue.Close()
+	queue.Close() //nolint:errcheck
 
 	job, err := queue.Dequeue(ctx)
 	if err != nil {
@@ -125,7 +125,7 @@ func TestQueue_GetJob(t *testing.T) {
 	ctx := context.Background()
 
 	job := domain.NewJob("test", "voice", "provider", "mp3", nil)
-	queue.Enqueue(ctx, job)
+	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	retrievedJob, err := queue.GetJob(ctx, job.ID)
 	if err != nil {
@@ -152,7 +152,7 @@ func TestQueue_UpdateJob(t *testing.T) {
 	ctx := context.Background()
 
 	job := domain.NewJob("test", "voice", "provider", "mp3", nil)
-	queue.Enqueue(ctx, job)
+	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	job.SetProcessing()
 	err := queue.UpdateJob(ctx, job)
@@ -189,17 +189,17 @@ func TestQueue_ListJobs(t *testing.T) {
 	job2 := domain.NewJob("test2", "voice", "provider", "mp3", nil)
 	job3 := domain.NewJob("test3", "voice", "provider", "mp3", nil)
 
-	queue.Enqueue(ctx, job1)
-	queue.Enqueue(ctx, job2)
-	queue.Enqueue(ctx, job3)
+	queue.Enqueue(ctx, job1) //nolint:errcheck
+	queue.Enqueue(ctx, job2) //nolint:errcheck
+	queue.Enqueue(ctx, job3) //nolint:errcheck
 
 	// Update job2 to processing
 	job2.SetProcessing()
-	queue.UpdateJob(ctx, job2)
+	queue.UpdateJob(ctx, job2) //nolint:errcheck
 
 	// Update job3 to completed
 	job3.SetCompleted("/path/to/result", 24)
-	queue.UpdateJob(ctx, job3)
+	queue.UpdateJob(ctx, job3) //nolint:errcheck
 
 	// List queued jobs
 	queuedJobs, err := queue.ListJobs(ctx, domain.JobStatusQueued)
@@ -228,7 +228,7 @@ func TestQueue_DeleteJob(t *testing.T) {
 	ctx := context.Background()
 
 	job := domain.NewJob("test", "voice", "provider", "mp3", nil)
-	queue.Enqueue(ctx, job)
+	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	err := queue.DeleteJob(ctx, job.ID)
 	if err != nil {
@@ -266,19 +266,19 @@ func TestQueue_Stats(t *testing.T) {
 	job3 := domain.NewJob("test3", "voice", "provider", "mp3", nil)
 	job4 := domain.NewJob("test4", "voice", "provider", "mp3", nil)
 
-	queue.Enqueue(ctx, job1)
-	queue.Enqueue(ctx, job2)
-	queue.Enqueue(ctx, job3)
-	queue.Enqueue(ctx, job4)
+	queue.Enqueue(ctx, job1) //nolint:errcheck
+	queue.Enqueue(ctx, job2) //nolint:errcheck
+	queue.Enqueue(ctx, job3) //nolint:errcheck
+	queue.Enqueue(ctx, job4) //nolint:errcheck
 
 	job2.SetProcessing()
-	queue.UpdateJob(ctx, job2)
+	queue.UpdateJob(ctx, job2) //nolint:errcheck
 
 	job3.SetCompleted("/path", 24)
-	queue.UpdateJob(ctx, job3)
+	queue.UpdateJob(ctx, job3) //nolint:errcheck
 
 	job4.SetFailed("error")
-	queue.UpdateJob(ctx, job4)
+	queue.UpdateJob(ctx, job4) //nolint:errcheck
 
 	stats := queue.Stats()
 

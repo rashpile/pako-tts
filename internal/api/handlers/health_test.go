@@ -31,7 +31,7 @@ func TestHealthCheck(t *testing.T) {
 	handler.HealthCheck(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)

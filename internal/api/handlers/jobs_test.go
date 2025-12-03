@@ -38,7 +38,7 @@ func TestJobsHandler_SubmitJob(t *testing.T) {
 	handler.SubmitJob(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Errorf("Expected status 201, got %d", resp.StatusCode)
@@ -72,7 +72,7 @@ func TestJobsHandler_SubmitJob_InvalidJSON(t *testing.T) {
 	handler.SubmitJob(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusUnprocessableEntity {
 		t.Errorf("Expected status 422, got %d", resp.StatusCode)
@@ -100,7 +100,7 @@ func TestJobsHandler_SubmitJob_EmptyText(t *testing.T) {
 	handler.SubmitJob(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusUnprocessableEntity {
 		t.Errorf("Expected status 422, got %d", resp.StatusCode)
@@ -129,7 +129,7 @@ func TestJobsHandler_SubmitJob_InvalidFormat(t *testing.T) {
 	handler.SubmitJob(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusUnprocessableEntity {
 		t.Errorf("Expected status 422, got %d", resp.StatusCode)
@@ -147,7 +147,7 @@ func TestJobsHandler_GetJobStatus(t *testing.T) {
 	// Create a job first
 	ctx := context.Background()
 	job := domain.NewJob("test text", "voice123", "test-provider", "mp3", nil)
-	queue.Enqueue(ctx, job)
+	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	// Create request with chi URL params
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/jobs/"+job.ID, nil)
@@ -160,7 +160,7 @@ func TestJobsHandler_GetJobStatus(t *testing.T) {
 	handler.GetJobStatus(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -197,7 +197,7 @@ func TestJobsHandler_GetJobStatus_NotFound(t *testing.T) {
 	handler.GetJobStatus(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected status 404, got %d", resp.StatusCode)
@@ -215,7 +215,7 @@ func TestJobsHandler_GetJobResult_NotComplete(t *testing.T) {
 	// Create a job (still queued, not completed)
 	ctx := context.Background()
 	job := domain.NewJob("test text", "voice123", "test-provider", "mp3", nil)
-	queue.Enqueue(ctx, job)
+	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/jobs/"+job.ID+"/result", nil)
 	rctx := chi.NewRouteContext()
@@ -227,7 +227,7 @@ func TestJobsHandler_GetJobResult_NotComplete(t *testing.T) {
 	handler.GetJobResult(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusTooEarly {
 		t.Errorf("Expected status 425 (TooEarly), got %d", resp.StatusCode)
@@ -245,9 +245,9 @@ func TestJobsHandler_GetJobResult_Success(t *testing.T) {
 	// Create and complete a job
 	ctx := context.Background()
 	job := domain.NewJob("test text", "voice123", "test-provider", "mp3", nil)
-	queue.Enqueue(ctx, job)
+	queue.Enqueue(ctx, job)      //nolint:errcheck
 	job.SetCompleted("/storage/"+job.ID+".mp3", 24)
-	queue.UpdateJob(ctx, job)
+	queue.UpdateJob(ctx, job)    //nolint:errcheck
 
 	// Store audio data
 	mockStorage.StoredFiles[job.ID] = []byte("fake audio content")
@@ -262,7 +262,7 @@ func TestJobsHandler_GetJobResult_Success(t *testing.T) {
 	handler.GetJobResult(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
