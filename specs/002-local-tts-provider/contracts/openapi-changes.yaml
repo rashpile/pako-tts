@@ -1,0 +1,163 @@
+# OpenAPI Contract Changes for Multi-Provider Architecture
+# These changes should be merged into cmd/server/openapi.yaml
+
+# =============================================================================
+# CHANGES TO EXISTING ENDPOINTS
+# =============================================================================
+
+# 1. POST /api/v1/tts - Add provider parameter
+# Add to TTSRequest schema:
+#
+#   TTSRequest:
+#     properties:
+#       provider:                          # NEW FIELD
+#         type: string
+#         description: |
+#           Provider name to use for synthesis.
+#           If not specified, uses the configured default provider.
+#         example: "elevenlabs"
+
+# 2. POST /api/v1/jobs - Already has provider field (no changes needed)
+
+# 3. GET /api/v1/health - Update to show all providers
+# Already returns array of provider status (no changes needed)
+
+# 4. GET /api/v1/providers - Update response
+# Already returns providers list with default_provider (no changes needed)
+
+# =============================================================================
+# NEW ERROR CODES
+# =============================================================================
+
+# Add to ErrorResponse documentation:
+#
+# New error codes:
+#   - PROVIDER_NOT_FOUND: Specified provider does not exist
+#   - PROVIDER_UNAVAILABLE: Provider exists but is not available
+
+# =============================================================================
+# UPDATED SCHEMA: TTSRequest (full replacement)
+# =============================================================================
+
+schemas:
+  TTSRequest:
+    type: object
+    required:
+      - text
+    properties:
+      text:
+        type: string
+        maxLength: 5000
+        description: Text to convert to speech (max 5000 characters)
+      voice_id:
+        type: string
+        description: Voice identifier (uses default if not specified)
+      provider:
+        type: string
+        description: |
+          Provider name to use for synthesis.
+          If not specified, uses the configured default provider.
+          Use GET /api/v1/providers to see available providers.
+        example: "local-tts"
+      output_format:
+        type: string
+        enum: [mp3, wav]
+        default: mp3
+        description: Audio output format
+      voice_settings:
+        $ref: "#/components/schemas/VoiceSettings"
+
+# =============================================================================
+# NEW ENDPOINT: GET /api/v1/providers/{provider_name}/voices
+# =============================================================================
+
+paths:
+  /api/v1/providers/{provider_name}/voices:
+    get:
+      tags:
+        - Providers
+      summary: List Provider Voices
+      description: |
+        List all available voices for a specific provider.
+
+        Each provider has its own set of voices with different capabilities.
+      operationId: listProviderVoices
+      parameters:
+        - name: provider_name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Provider identifier
+          example: "local-tts"
+      responses:
+        "200":
+          description: Voice List
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoicesListResponse"
+              example:
+                voices:
+                  - voice_id: "coqui-tts-en"
+                    name: "Coqui English"
+                    provider: "local-tts"
+                    language: "en"
+                  - voice_id: "silero-ru"
+                    name: "Silero Russian"
+                    provider: "local-tts"
+                    language: "ru"
+        "404":
+          description: Provider Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: PROVIDER_NOT_FOUND
+                  message: "Provider 'unknown' not found"
+
+# =============================================================================
+# NEW SCHEMA: VoicesListResponse
+# =============================================================================
+
+  VoicesListResponse:
+    type: object
+    required:
+      - voices
+    properties:
+      voices:
+        type: array
+        items:
+          $ref: "#/components/schemas/Voice"
+        description: List of available voices
+
+  Voice:
+    type: object
+    required:
+      - voice_id
+      - name
+      - provider
+    properties:
+      voice_id:
+        type: string
+        description: Unique voice identifier
+      name:
+        type: string
+        description: Human-readable voice name
+      provider:
+        type: string
+        description: Provider this voice belongs to
+      language:
+        type: string
+        description: Primary language code (ISO 639-1)
+        example: "en"
+      gender:
+        type: string
+        enum: [male, female, neutral]
+        description: Voice gender
+      preview_url:
+        type: string
+        format: uri
+        description: URL to preview audio sample

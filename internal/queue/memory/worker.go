@@ -14,7 +14,7 @@ import (
 // Worker processes jobs from the queue.
 type Worker struct {
 	queue          *Queue
-	provider       domain.TTSProvider
+	registry       domain.ProviderRegistry
 	storage        domain.AudioStorage
 	logger         *zap.Logger
 	retentionHours int
@@ -25,14 +25,14 @@ type Worker struct {
 // NewWorker creates a new worker.
 func NewWorker(
 	queue *Queue,
-	provider domain.TTSProvider,
+	registry domain.ProviderRegistry,
 	storage domain.AudioStorage,
 	logger *zap.Logger,
 	retentionHours int,
 ) *Worker {
 	return &Worker{
 		queue:          queue,
-		provider:       provider,
+		registry:       registry,
 		storage:        storage,
 		logger:         logger,
 		retentionHours: retentionHours,
@@ -92,7 +92,16 @@ func (w *Worker) run(ctx context.Context, workerID int) {
 
 func (w *Worker) processJob(ctx context.Context, job *domain.Job, logger *zap.Logger) {
 	logger = logger.With(zap.String("job_id", job.ID))
-	logger.Info("Processing job")
+	logger.Info("Processing job", zap.String("provider", job.ProviderName))
+
+	// Get provider from registry
+	provider, err := w.registry.Get(job.ProviderName)
+	if err != nil {
+		logger.Error("Provider not found", zap.String("provider", job.ProviderName), zap.Error(err))
+		job.SetFailed("Provider not found: " + job.ProviderName)
+		w.queue.UpdateJob(ctx, job) //nolint:errcheck
+		return
+	}
 
 	// Mark as processing
 	job.SetProcessing()
@@ -120,7 +129,7 @@ func (w *Worker) processJob(ctx context.Context, job *domain.Job, logger *zap.Lo
 	w.queue.UpdateJob(ctx, job) //nolint:errcheck
 
 	// Synthesize audio
-	result, err := w.provider.Synthesize(ctx, req)
+	result, err := provider.Synthesize(ctx, req)
 	if err != nil {
 		logger.Error("Synthesis failed", zap.Error(err))
 		job.SetFailed(err.Error())

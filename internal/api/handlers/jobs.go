@@ -14,7 +14,7 @@ import (
 
 // JobsHandler handles job-related requests.
 type JobsHandler struct {
-	provider       domain.TTSProvider
+	registry       domain.ProviderRegistry
 	queue          domain.JobQueue
 	storage        domain.AudioStorage
 	logger         *zap.Logger
@@ -24,7 +24,7 @@ type JobsHandler struct {
 
 // NewJobsHandler creates a new jobs handler.
 func NewJobsHandler(
-	provider domain.TTSProvider,
+	registry domain.ProviderRegistry,
 	queue domain.JobQueue,
 	storage domain.AudioStorage,
 	logger *zap.Logger,
@@ -32,7 +32,7 @@ func NewJobsHandler(
 	retentionHours int,
 ) *JobsHandler {
 	return &JobsHandler{
-		provider:       provider,
+		registry:       registry,
 		queue:          queue,
 		storage:        storage,
 		logger:         logger,
@@ -108,7 +108,13 @@ func (h *JobsHandler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 
 	providerName := req.Provider
 	if providerName == "" {
-		providerName = h.provider.Name()
+		providerName = h.registry.DefaultName()
+	}
+
+	// Validate provider exists
+	if _, err := h.registry.Get(providerName); err != nil {
+		middleware.WriteError(w, domain.ErrProviderNotFound.WithMessage("Provider '"+providerName+"' not found"))
+		return
 	}
 
 	// Create job

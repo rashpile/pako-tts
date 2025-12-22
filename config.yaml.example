@@ -1,0 +1,48 @@
+# Pako TTS Configuration Example
+# Copy this file to config.yaml and customize for your environment
+
+server:
+  port: 8080
+  read_timeout: 60s
+  write_timeout: 60s
+
+# Provider configuration
+providers:
+  # Name of the default provider (must match a provider name in the list)
+  default: "elevenlabs"
+
+  # List of configured providers
+  list:
+    # ElevenLabs provider configuration
+    - name: "elevenlabs"
+      type: "elevenlabs"
+      api_key: "${ELEVENLABS_API_KEY}"  # Use environment variable
+      max_concurrent: 4
+      timeout: 30s
+
+    # Self-hosted TTS provider configuration (uncomment to enable)
+    # - name: "local-tts"
+    #   type: "selfhosted"
+    #   base_url: "http://localhost:7021"
+    #   tts_endpoint: "/api/v1/tts"
+    #   voices_endpoint: "/api/v1/models"
+    #   health_endpoint: "/api/v1/health"
+    #   max_concurrent: 2
+    #   timeout: 60s
+
+tts:
+  default_voice_id: "pNInz6obpgDQGcFmaJgB"
+  max_sync_text_length: 5000
+  sync_timeout: 30s
+
+queue:
+  worker_count: 4
+  max_concurrent_jobs: 100
+
+storage:
+  audio_storage_path: "./audio_cache"
+  job_retention_hours: 24
+
+logging:
+  level: info
+  format: json

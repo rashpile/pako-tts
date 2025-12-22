@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/pako-tts/server/internal/api"
-	"github.com/pako-tts/server/internal/provider/elevenlabs"
+	"github.com/pako-tts/server/internal/provider/registry"
 	"github.com/pako-tts/server/internal/queue/memory"
 	"github.com/pako-tts/server/internal/storage/filesystem"
 	"github.com/pako-tts/server/pkg/config"
@@ -44,16 +44,14 @@ func main() {
 		zap.String("log_level", cfg.Logging.Level),
 	)
 
-	// Validate API key
-	if cfg.TTS.ElevenLabsAPIKey == "" {
-		logger.Warn("ELEVENLABS_API_KEY not set - provider will be unavailable")
+	// Initialize provider registry
+	providerRegistry, err := registry.NewRegistry(&cfg.Providers)
+	if err != nil {
+		logger.Fatal("Failed to initialize provider registry", zap.Error(err))
 	}
-
-	// Initialize provider
-	provider := elevenlabs.NewProvider(cfg.TTS.ElevenLabsAPIKey, true)
-	logger.Info("Provider initialized",
-		zap.String("provider", provider.Name()),
-		zap.Int("max_concurrent", provider.MaxConcurrent()),
+	logger.Info("Provider registry initialized",
+		zap.Int("providers", len(providerRegistry.List())),
+		zap.String("default", providerRegistry.DefaultName()),
 	)
 
 	// Initialize storage
@@ -72,7 +70,7 @@ func main() {
 	)
 
 	// Start worker pool
-	worker := memory.NewWorker(queue, provider, storage, logger, cfg.Storage.JobRetentionHours)
+	worker := memory.NewWorker(queue, providerRegistry, storage, logger, cfg.Storage.JobRetentionHours)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -84,15 +82,15 @@ func main() {
 
 	// Setup router
 	router := api.NewRouter(&api.RouterDeps{
-		Logger:         logger,
-		Provider:       provider,
-		Queue:          queue,
-		Storage:        storage,
-		SyncTimeout:    cfg.TTS.SyncTimeout,
-		MaxSyncTextLen: cfg.TTS.MaxSyncTextLength,
-		DefaultVoiceID: cfg.TTS.DefaultVoiceID,
-		RetentionHours: cfg.Storage.JobRetentionHours,
-		OpenAPISpec:    openAPISpec,
+		Logger:           logger,
+		ProviderRegistry: providerRegistry,
+		Queue:            queue,
+		Storage:          storage,
+		SyncTimeout:      cfg.TTS.SyncTimeout,
+		MaxSyncTextLen:   cfg.TTS.MaxSyncTextLength,
+		DefaultVoiceID:   cfg.TTS.DefaultVoiceID,
+		RetentionHours:   cfg.Storage.JobRetentionHours,
+		OpenAPISpec:      openAPISpec,
 	})
 
 	// Setup HTTP server

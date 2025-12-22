@@ -22,8 +22,9 @@ func TestHealthCheck(t *testing.T) {
 		NameValue:      "mock-provider",
 		AvailableValue: true,
 	}
+	mockRegistry := mocks.NewMockProviderRegistry(mockProvider)
 
-	handler := NewHealthHandler(mockProvider, logger)
+	handler := NewHealthHandler(mockRegistry, logger)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
 	w := httptest.NewRecorder()

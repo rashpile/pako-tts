@@ -75,6 +75,13 @@ var (
 		Message:    "Text exceeds 5000 character limit. Use POST /api/v1/jobs for longer texts.",
 	}
 
+	// ErrProviderNotFound indicates the requested provider doesn't exist.
+	ErrProviderNotFound = &APIError{
+		StatusCode: http.StatusNotFound,
+		Code:       "PROVIDER_NOT_FOUND",
+		Message:    "Provider not found",
+	}
+
 	// ErrProviderUnavailable indicates the TTS provider is not available.
 	ErrProviderUnavailable = &APIError{
 		StatusCode: http.StatusServiceUnavailable,

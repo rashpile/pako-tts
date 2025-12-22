@@ -96,3 +96,58 @@ func (m *MockProvider) Status(ctx context.Context) domain.ProviderStatus {
 		MaxConcurrent: m.MaxConcurrent(),
 	}
 }
+
+// MockProviderRegistry is a mock implementation of domain.ProviderRegistry for testing.
+type MockProviderRegistry struct {
+	Providers       map[string]domain.TTSProvider
+	DefaultProvider domain.TTSProvider
+	DefaultNameVal  string
+}
+
+// NewMockProviderRegistry creates a new mock registry with a single default provider.
+func NewMockProviderRegistry(provider domain.TTSProvider) *MockProviderRegistry {
+	return &MockProviderRegistry{
+		Providers: map[string]domain.TTSProvider{
+			provider.Name(): provider,
+		},
+		DefaultProvider: provider,
+		DefaultNameVal:  provider.Name(),
+	}
+}
+
+func (r *MockProviderRegistry) Get(name string) (domain.TTSProvider, error) {
+	if p, ok := r.Providers[name]; ok {
+		return p, nil
+	}
+	return nil, domain.ErrProviderNotFound.WithMessage("Provider '" + name + "' not found")
+}
+
+func (r *MockProviderRegistry) Default() domain.TTSProvider {
+	return r.DefaultProvider
+}
+
+func (r *MockProviderRegistry) List() []domain.TTSProvider {
+	result := make([]domain.TTSProvider, 0, len(r.Providers))
+	for _, p := range r.Providers {
+		result = append(result, p)
+	}
+	return result
+}
+
+func (r *MockProviderRegistry) ListInfo(ctx context.Context) []domain.ProviderInfo {
+	result := make([]domain.ProviderInfo, 0, len(r.Providers))
+	for _, p := range r.Providers {
+		result = append(result, domain.ProviderInfo{
+			Name:          p.Name(),
+			Type:          "MockProvider",
+			MaxConcurrent: p.MaxConcurrent(),
+			IsDefault:     p.Name() == r.DefaultNameVal,
+			IsAvailable:   p.IsAvailable(ctx),
+		})
+	}
+	return result
+}
+
+func (r *MockProviderRegistry) DefaultName() string {
+	return r.DefaultNameVal
+}

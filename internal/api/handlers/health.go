@@ -8,19 +8,18 @@ import (
 
 	"github.com/pako-tts/server/internal/api/middleware"
 	"github.com/pako-tts/server/internal/domain"
-	"github.com/pako-tts/server/internal/provider/elevenlabs"
 )
 
 // HealthHandler handles health check requests.
 type HealthHandler struct {
-	provider domain.TTSProvider
+	registry domain.ProviderRegistry
 	logger   *zap.Logger
 }
 
 // NewHealthHandler creates a new health handler.
-func NewHealthHandler(provider domain.TTSProvider, logger *zap.Logger) *HealthHandler {
+func NewHealthHandler(registry domain.ProviderRegistry, logger *zap.Logger) *HealthHandler {
 	return &HealthHandler{
-		provider: provider,
+		registry: registry,
 		logger:   logger,
 	}
 }
@@ -36,17 +35,17 @@ type HealthResponse struct {
 func (h *HealthHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Get provider status
+	// Get status for all providers
 	var providers []domain.ProviderStatus
-	if ep, ok := h.provider.(*elevenlabs.Provider); ok {
-		providers = append(providers, ep.Status(ctx))
+	for _, p := range h.registry.List() {
+		providers = append(providers, p.Status(ctx))
 	}
 
-	// Determine overall status
-	status := "healthy"
+	// Determine overall status - healthy if at least one provider is available
+	status := "unhealthy"
 	for _, p := range providers {
-		if !p.Available {
-			status = "unhealthy"
+		if p.Available {
+			status = "healthy"
 			break
 		}
 	}

@@ -27,6 +27,9 @@ type TTSProvider interface {
 
 	// ActiveJobs returns the current number of active jobs.
 	ActiveJobs() int
+
+	// Status returns the provider's runtime status for health checks.
+	Status(ctx context.Context) ProviderStatus
 }
 
 // SynthesisRequest contains parameters for a TTS synthesis request.
@@ -60,4 +63,26 @@ type ProviderStatus struct {
 	Available     bool   `json:"available"`
 	ActiveJobs    int    `json:"active_jobs"`
 	MaxConcurrent int    `json:"max_concurrent"`
+}
+
+// ProviderRegistry manages multiple TTS providers.
+// It handles provider lookup, default provider selection, and provider listing.
+type ProviderRegistry interface {
+	// Get returns a provider by name.
+	// Returns ErrProviderNotFound if the provider doesn't exist.
+	Get(name string) (TTSProvider, error)
+
+	// Default returns the default provider.
+	// The default provider is used when no provider is specified in requests.
+	Default() TTSProvider
+
+	// List returns all registered providers.
+	List() []TTSProvider
+
+	// ListInfo returns info for all providers (for API response).
+	// Includes availability status for each provider.
+	ListInfo(ctx context.Context) []ProviderInfo
+
+	// DefaultName returns the name of the default provider.
+	DefaultName() string
 }

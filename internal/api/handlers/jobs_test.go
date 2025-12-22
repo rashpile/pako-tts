@@ -19,10 +19,11 @@ import (
 func TestJobsHandler_SubmitJob(t *testing.T) {
 	logger := testLogger()
 	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}
+	mockRegistry := mocks.NewMockProviderRegistry(mockProvider)
 	queue := memory.NewQueue(10)
 	mockStorage := mocks.NewMockStorage()
 
-	handler := NewJobsHandler(mockProvider, queue, mockStorage, logger, "default-voice", 24)
+	handler := NewJobsHandler(mockRegistry, queue, mockStorage, logger, "default-voice", 24)
 
 	reqBody := JobCreateRequest{
 		Text:         "Hello, world!",
@@ -60,10 +61,11 @@ func TestJobsHandler_SubmitJob(t *testing.T) {
 func TestJobsHandler_SubmitJob_InvalidJSON(t *testing.T) {
 	logger := testLogger()
 	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}
+	mockRegistry := mocks.NewMockProviderRegistry(mockProvider)
 	queue := memory.NewQueue(10)
 	mockStorage := mocks.NewMockStorage()
 
-	handler := NewJobsHandler(mockProvider, queue, mockStorage, logger, "default-voice", 24)
+	handler := NewJobsHandler(mockRegistry, queue, mockStorage, logger, "default-voice", 24)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/jobs", bytes.NewReader([]byte("invalid json")))
 	req.Header.Set("Content-Type", "application/json")
@@ -82,10 +84,11 @@ func TestJobsHandler_SubmitJob_InvalidJSON(t *testing.T) {
 func TestJobsHandler_SubmitJob_EmptyText(t *testing.T) {
 	logger := testLogger()
 	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}
+	mockRegistry := mocks.NewMockProviderRegistry(mockProvider)
 	queue := memory.NewQueue(10)
 	mockStorage := mocks.NewMockStorage()
 
-	handler := NewJobsHandler(mockProvider, queue, mockStorage, logger, "default-voice", 24)
+	handler := NewJobsHandler(mockRegistry, queue, mockStorage, logger, "default-voice", 24)
 
 	reqBody := JobCreateRequest{
 		Text:    "",
@@ -110,10 +113,11 @@ func TestJobsHandler_SubmitJob_EmptyText(t *testing.T) {
 func TestJobsHandler_SubmitJob_InvalidFormat(t *testing.T) {
 	logger := testLogger()
 	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}
+	mockRegistry := mocks.NewMockProviderRegistry(mockProvider)
 	queue := memory.NewQueue(10)
 	mockStorage := mocks.NewMockStorage()
 
-	handler := NewJobsHandler(mockProvider, queue, mockStorage, logger, "default-voice", 24)
+	handler := NewJobsHandler(mockRegistry, queue, mockStorage, logger, "default-voice", 24)
 
 	reqBody := JobCreateRequest{
 		Text:         "Hello",
@@ -139,10 +143,11 @@ func TestJobsHandler_SubmitJob_InvalidFormat(t *testing.T) {
 func TestJobsHandler_GetJobStatus(t *testing.T) {
 	logger := testLogger()
 	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}
+	mockRegistry := mocks.NewMockProviderRegistry(mockProvider)
 	queue := memory.NewQueue(10)
 	mockStorage := mocks.NewMockStorage()
 
-	handler := NewJobsHandler(mockProvider, queue, mockStorage, logger, "default-voice", 24)
+	handler := NewJobsHandler(mockRegistry, queue, mockStorage, logger, "default-voice", 24)
 
 	// Create a job first
 	ctx := context.Background()
@@ -182,10 +187,11 @@ func TestJobsHandler_GetJobStatus(t *testing.T) {
 func TestJobsHandler_GetJobStatus_NotFound(t *testing.T) {
 	logger := testLogger()
 	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}
+	mockRegistry := mocks.NewMockProviderRegistry(mockProvider)
 	queue := memory.NewQueue(10)
 	mockStorage := mocks.NewMockStorage()
 
-	handler := NewJobsHandler(mockProvider, queue, mockStorage, logger, "default-voice", 24)
+	handler := NewJobsHandler(mockRegistry, queue, mockStorage, logger, "default-voice", 24)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/jobs/non-existent", nil)
 	rctx := chi.NewRouteContext()
@@ -207,10 +213,11 @@ func TestJobsHandler_GetJobStatus_NotFound(t *testing.T) {
 func TestJobsHandler_GetJobResult_NotComplete(t *testing.T) {
 	logger := testLogger()
 	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}
+	mockRegistry := mocks.NewMockProviderRegistry(mockProvider)
 	queue := memory.NewQueue(10)
 	mockStorage := mocks.NewMockStorage()
 
-	handler := NewJobsHandler(mockProvider, queue, mockStorage, logger, "default-voice", 24)
+	handler := NewJobsHandler(mockRegistry, queue, mockStorage, logger, "default-voice", 24)
 
 	// Create a job (still queued, not completed)
 	ctx := context.Background()
@@ -237,10 +244,11 @@ func TestJobsHandler_GetJobResult_NotComplete(t *testing.T) {
 func TestJobsHandler_GetJobResult_Success(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
 	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}
+	mockRegistry := mocks.NewMockProviderRegistry(mockProvider)
 	queue := memory.NewQueue(10)
 	mockStorage := mocks.NewMockStorage()
 
-	handler := NewJobsHandler(mockProvider, queue, mockStorage, logger, "default-voice", 24)
+	handler := NewJobsHandler(mockRegistry, queue, mockStorage, logger, "default-voice", 24)
 
 	// Create and complete a job
 	ctx := context.Background()
