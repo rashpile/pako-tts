@@ -1,0 +1,206 @@
+# Configuration Schema for Multi-Provider Architecture
+# This defines the structure for config.yaml
+
+type: object
+required:
+  - server
+  - providers
+properties:
+  server:
+    type: object
+    properties:
+      port:
+        type: integer
+        default: 8080
+        description: HTTP server port
+      read_timeout:
+        type: string
+        format: duration
+        default: "60s"
+        description: HTTP read timeout
+      write_timeout:
+        type: string
+        format: duration
+        default: "60s"
+        description: HTTP write timeout
+
+  providers:
+    type: object
+    required:
+      - default
+      - list
+    properties:
+      default:
+        type: string
+        description: Name of the default provider (must match a provider in list)
+        example: "local-tts"
+      list:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/$defs/ProviderConfig"
+        description: List of provider configurations
+
+  tts:
+    type: object
+    properties:
+      default_voice_id:
+        type: string
+        description: Default voice ID when not specified in request
+      max_sync_text_length:
+        type: integer
+        default: 5000
+        description: Maximum text length for synchronous TTS
+      sync_timeout:
+        type: string
+        format: duration
+        default: "30s"
+        description: Timeout for synchronous TTS requests
+
+  queue:
+    type: object
+    properties:
+      worker_count:
+        type: integer
+        default: 4
+        description: Number of worker goroutines
+      max_concurrent_jobs:
+        type: integer
+        default: 100
+        description: Maximum jobs in queue
+
+  storage:
+    type: object
+    properties:
+      audio_storage_path:
+        type: string
+        default: "./audio_cache"
+        description: Path to store audio files
+      job_retention_hours:
+        type: integer
+        default: 24
+        description: Hours to retain job results
+
+  logging:
+    type: object
+    properties:
+      level:
+        type: string
+        enum: [debug, info, warn, error]
+        default: info
+        description: Log level
+      format:
+        type: string
+        enum: [json, console]
+        default: json
+        description: Log format
+
+$defs:
+  ProviderConfig:
+    type: object
+    required:
+      - name
+      - type
+    properties:
+      name:
+        type: string
+        description: Unique provider identifier
+        pattern: "^[a-z][a-z0-9-]*$"
+        example: "local-tts"
+      type:
+        type: string
+        enum: [elevenlabs, selfhosted]
+        description: Provider implementation type
+      max_concurrent:
+        type: integer
+        minimum: 1
+        default: 4
+        description: Maximum concurrent synthesis requests
+      timeout:
+        type: string
+        format: duration
+        default: "30s"
+        description: Request timeout
+    allOf:
+      - if:
+          properties:
+            type:
+              const: elevenlabs
+        then:
+          properties:
+            api_key:
+              type: string
+              description: ElevenLabs API key (supports ${ENV_VAR} syntax)
+          required:
+            - api_key
+      - if:
+          properties:
+            type:
+              const: selfhosted
+        then:
+          properties:
+            base_url:
+              type: string
+              format: uri
+              description: Base URL of the TTS service
+              example: "http://localhost:7021"
+            tts_endpoint:
+              type: string
+              default: "/api/v1/tts"
+              description: TTS synthesis endpoint path
+            voices_endpoint:
+              type: string
+              default: "/api/v1/models"
+              description: Voices/models list endpoint path
+            health_endpoint:
+              type: string
+              default: "/api/v1/health"
+              description: Health check endpoint path
+          required:
+            - base_url
+
+# =============================================================================
+# EXAMPLE CONFIGURATION
+# =============================================================================
+
+examples:
+  multi-provider:
+    server:
+      port: 8080
+      read_timeout: "60s"
+      write_timeout: "60s"
+
+    providers:
+      default: "local-tts"
+      list:
+        - name: "elevenlabs"
+          type: "elevenlabs"
+          api_key: "${ELEVENLABS_API_KEY}"
+          max_concurrent: 4
+          timeout: "30s"
+
+        - name: "local-tts"
+          type: "selfhosted"
+          base_url: "http://localhost:7021"
+          tts_endpoint: "/api/v1/tts"
+          voices_endpoint: "/api/v1/models"
+          health_endpoint: "/api/v1/health"
+          max_concurrent: 2
+          timeout: "60s"
+
+    tts:
+      default_voice_id: "pNInz6obpgDQGcFmaJgB"
+      max_sync_text_length: 5000
+      sync_timeout: "30s"
+
+    queue:
+      worker_count: 4
+      max_concurrent_jobs: 100
+
+    storage:
+      audio_storage_path: "./audio_cache"
+      job_retention_hours: 24
+
+    logging:
+      level: "info"
+      format: "json"

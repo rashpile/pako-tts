@@ -28,6 +28,10 @@ build/
 .env.local
 .env.*.local
 
+# Local config files (may contain secrets)
+config.yaml
+config.local.yaml
+
 # IDE and editor directories
 .idea/
 .vscode/

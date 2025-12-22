@@ -14,7 +14,7 @@ import (
 
 // TTSHandler handles synchronous TTS requests.
 type TTSHandler struct {
-	provider       domain.TTSProvider
+	registry       domain.ProviderRegistry
 	logger         *zap.Logger
 	syncTimeout    time.Duration
 	maxTextLen     int
@@ -23,14 +23,14 @@ type TTSHandler struct {
 
 // NewTTSHandler creates a new TTS handler.
 func NewTTSHandler(
-	provider domain.TTSProvider,
+	registry domain.ProviderRegistry,
 	logger *zap.Logger,
 	syncTimeout time.Duration,
 	maxTextLen int,
 	defaultVoiceID string,
 ) *TTSHandler {
 	return &TTSHandler{
-		provider:       provider,
+		registry:       registry,
 		logger:         logger,
 		syncTimeout:    syncTimeout,
 		maxTextLen:     maxTextLen,
@@ -42,6 +42,7 @@ func NewTTSHandler(
 type TTSRequest struct {
 	Text          string                `json:"text"`
 	VoiceID       string                `json:"voice_id,omitempty"`
+	Provider      string                `json:"provider,omitempty"`
 	OutputFormat  string                `json:"output_format,omitempty"`
 	VoiceSettings *domain.VoiceSettings `json:"voice_settings,omitempty"`
 }
@@ -90,8 +91,21 @@ func (h *TTSHandler) SynthesizeTTS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get provider (use specified or default)
+	var provider domain.TTSProvider
+	if req.Provider != "" {
+		var err error
+		provider, err = h.registry.Get(req.Provider)
+		if err != nil {
+			middleware.WriteError(w, domain.ErrProviderNotFound.WithMessage("Provider '"+req.Provider+"' not found"))
+			return
+		}
+	} else {
+		provider = h.registry.Default()
+	}
+
 	// Check provider availability
-	if !h.provider.IsAvailable(ctx) {
+	if !provider.IsAvailable(ctx) {
 		middleware.WriteError(w, domain.ErrProviderUnavailable)
 		return
 	}
@@ -105,7 +119,7 @@ func (h *TTSHandler) SynthesizeTTS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Synthesize
-	result, err := h.provider.Synthesize(ctx, synthReq)
+	result, err := provider.Synthesize(ctx, synthReq)
 	if err != nil {
 		h.logger.Error("Synthesis failed", zap.Error(err))
 		middleware.WriteError(w, domain.ErrProviderUnavailable.WithMessage(err.Error()))

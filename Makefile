@@ -40,7 +40,7 @@ vet:
 
 # Run the application
 run:
-	HTTP_PORT=7009 $(GOCMD) run ./cmd/server
+	set -a; source ./.env; set +a; HTTP_PORT=7009 $(GOCMD) run ./cmd/server
 
 # Run with hot reload (requires air)
 dev:

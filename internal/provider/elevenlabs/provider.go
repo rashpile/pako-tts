@@ -3,10 +3,12 @@ package elevenlabs
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"sync/atomic"
 
 	"github.com/pako-tts/server/internal/domain"
+	"github.com/pako-tts/server/pkg/config"
 )
 
 const (
@@ -28,6 +30,18 @@ func NewProvider(apiKey string, isDefault bool) *Provider {
 		client:    NewClient(apiKey),
 		isDefault: isDefault,
 	}
+}
+
+// NewProviderFromConfig creates a new ElevenLabs provider from configuration.
+func NewProviderFromConfig(cfg config.ProviderConfig, isDefault bool) (*Provider, error) {
+	if cfg.APIKey == "" {
+		return nil, fmt.Errorf("elevenlabs provider requires api_key")
+	}
+
+	return &Provider{
+		client:    NewClient(cfg.APIKey),
+		isDefault: isDefault,
+	}, nil
 }
 
 // Name returns the provider identifier.

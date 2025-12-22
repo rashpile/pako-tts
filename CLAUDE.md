@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-12-03
 
 ## Active Technologies
+- Go 1.23+ + Chi router (v5.1.0), Viper (config), Zap (logging), UUID (002-local-tts-provider)
+- Filesystem (audio_cache directory) (002-local-tts-provider)
 
 - Go 1.23 (latest stable) + Chi router (v5.1.0), Viper (config), Zap (logging), UUID (001-tts-api-wrapper)
 
@@ -22,6 +24,7 @@ tests/
 Go 1.23 (latest stable): Follow standard conventions
 
 ## Recent Changes
+- 002-local-tts-provider: Added Go 1.23+ + Chi router (v5.1.0), Viper (config), Zap (logging), UUID
 
 - 001-tts-api-wrapper: Added Go 1.23 (latest stable) + Chi router (v5.1.0), Viper (config), Zap (logging), UUID
 

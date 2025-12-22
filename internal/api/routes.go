@@ -16,15 +16,15 @@ import (
 
 // RouterDeps contains dependencies for the router.
 type RouterDeps struct {
-	Logger         *zap.Logger
-	Provider       domain.TTSProvider
-	Queue          domain.JobQueue
-	Storage        domain.AudioStorage
-	SyncTimeout    time.Duration
-	MaxSyncTextLen int
-	DefaultVoiceID string
-	RetentionHours int
-	OpenAPISpec    []byte
+	Logger           *zap.Logger
+	ProviderRegistry domain.ProviderRegistry
+	Queue            domain.JobQueue
+	Storage          domain.AudioStorage
+	SyncTimeout      time.Duration
+	MaxSyncTextLen   int
+	DefaultVoiceID   string
+	RetentionHours   int
+	OpenAPISpec      []byte
 }
 
 // NewRouter creates a new Chi router with all routes and middleware.
@@ -46,8 +46,8 @@ func NewRouter(deps *RouterDeps) *chi.Mux {
 	}))
 
 	// Create handlers
-	healthHandler := handlers.NewHealthHandler(deps.Provider, deps.Logger)
-	providersHandler := handlers.NewProvidersHandler(deps.Provider, deps.Logger)
+	healthHandler := handlers.NewHealthHandler(deps.ProviderRegistry, deps.Logger)
+	providersHandler := handlers.NewProvidersHandler(deps.ProviderRegistry, deps.Logger)
 
 	// OpenAPI handler (if spec provided)
 	var openAPIHandler *handlers.OpenAPIHandler
@@ -59,14 +59,14 @@ func NewRouter(deps *RouterDeps) *chi.Mux {
 		}
 	}
 	ttsHandler := handlers.NewTTSHandler(
-		deps.Provider,
+		deps.ProviderRegistry,
 		deps.Logger,
 		deps.SyncTimeout,
 		deps.MaxSyncTextLen,
 		deps.DefaultVoiceID,
 	)
 	jobsHandler := handlers.NewJobsHandler(
-		deps.Provider,
+		deps.ProviderRegistry,
 		deps.Queue,
 		deps.Storage,
 		deps.Logger,
