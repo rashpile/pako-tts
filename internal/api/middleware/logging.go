@@ -26,7 +26,7 @@ func NewLogging(logger *zap.Logger) func(http.Handler) http.Handler {
 
 			// Log request details
 			duration := time.Since(start)
-			logger.Info("HTTP request",
+			fields := []zap.Field{
 				zap.String("request_id", reqID),
 				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
@@ -35,7 +35,14 @@ func NewLogging(logger *zap.Logger) func(http.Handler) http.Handler {
 				zap.Duration("duration", duration),
 				zap.String("remote_addr", r.RemoteAddr),
 				zap.String("user_agent", r.UserAgent()),
-			)
+			}
+
+			// Use DEBUG level for health checks to reduce log noise
+			if r.URL.Path == "/api/v1/health" {
+				logger.Debug("HTTP request", fields...)
+			} else {
+				logger.Info("HTTP request", fields...)
+			}
 		})
 	}
 }
