@@ -227,15 +227,15 @@ Add schemas under `components.schemas:`:
 - Create: `internal/ui/ui_test.go`
 - Modify: `internal/api/routes.go`
 
-- [ ] create `internal/ui/ui.go` with `//go:embed index.html`, `Handler` struct, and `ServeHTTP` writing `Content-Type: text/html; charset=utf-8` and the embedded bytes (per Technical Details)
-- [ ] create `internal/ui/index.html` as a single-file UI:
+- [x] create `internal/ui/ui.go` with `//go:embed index.html`, `Handler` struct, and `ServeHTTP` writing `Content-Type: text/html; charset=utf-8` and the embedded bytes (per Technical Details)
+- [x] create `internal/ui/index.html` as a single-file UI:
   - `<style>` block adapted from `pako-transcriber/app/static/index.html` (640px container, white card, blue `#2563eb` button)
   - form: `<textarea name="text">` (rows=5, required), `<select id="provider-select">`, `<select id="voice-select">`, `<select id="format-select">` with `mp3`/`wav`, submit button, error message div
   - hidden result card: `<audio controls id="audio-player">`, download `<a>`, size/format span
   - ES5 `<script>`: `loadProviders()` → `loadVoices(name)` on init and provider change; form submit → `POST /api/v1/tts` JSON body → handle blob success and JSON error
-- [ ] wire UI routes in `internal/api/routes.go`: `r.Get("/ui/", uiHandler.ServeHTTP)` plus an inline redirect for the trailing-slash-less form: `r.Get("/ui", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/ui/", http.StatusMovedPermanently) })`. Place above the `/api/v1` route group. Add `"github.com/pako-tts/server/internal/ui"` and `"net/http"` imports as needed
-- [ ] create `internal/ui/ui_test.go` with `TestHandler_ServeHTTP` verifying: 200 status, `Content-Type` starts with `text/html`, body is non-empty, body contains recognizable markers (e.g. `<title>Pako TTS</title>`, `id="provider-select"`) AND the API URL constants (`/api/v1/tts`, `/api/v1/providers/`) so a future refactor that breaks JS endpoint paths is caught
-- [ ] run `go test ./...` — must pass before next task
+- [x] wire UI routes in `internal/api/routes.go`: `r.Get("/ui/", uiHandler.ServeHTTP)` plus an inline redirect for the trailing-slash-less form: `r.Get("/ui", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/ui/", http.StatusMovedPermanently) })`. Place above the `/api/v1` route group. Add `"github.com/pako-tts/server/internal/ui"` and `"net/http"` imports as needed
+- [x] create `internal/ui/ui_test.go` with `TestHandler_ServeHTTP` verifying: 200 status, `Content-Type` starts with `text/html`, body is non-empty, body contains recognizable markers (e.g. `<title>Pako TTS</title>`, `id="provider-select"`) AND the API URL constants (`/api/v1/tts`, `/api/v1/providers/`) so a future refactor that breaks JS endpoint paths is caught
+- [x] run `go test ./...` — must pass before next task
 
 ### Task 3: Verify acceptance criteria
 

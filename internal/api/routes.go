@@ -2,6 +2,7 @@
 package api
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -12,6 +13,7 @@ import (
 	"github.com/pako-tts/server/internal/api/handlers"
 	apimiddleware "github.com/pako-tts/server/internal/api/middleware"
 	"github.com/pako-tts/server/internal/domain"
+	"github.com/pako-tts/server/internal/ui"
 )
 
 // RouterDeps contains dependencies for the router.
@@ -79,6 +81,13 @@ func NewRouter(deps *RouterDeps) *chi.Mux {
 		r.Get("/openapi.json", openAPIHandler.ServeSpecJSON)
 		r.Get("/openapi.yaml", openAPIHandler.ServeSpecYAML)
 	}
+
+	// Browser UI
+	uiHandler := ui.NewHandler()
+	r.Get("/ui", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, "/ui/", http.StatusMovedPermanently)
+	})
+	r.Get("/ui/", uiHandler.ServeHTTP)
 
 	// API routes
 	r.Route("/api/v1", func(r chi.Router) {
