@@ -65,5 +65,9 @@ func (h *ProvidersHandler) ListVoices(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if voices == nil {
+		voices = []domain.Voice{}
+	}
+
 	middleware.WriteJSON(w, http.StatusOK, VoicesListResponse{Provider: name, Voices: voices})
 }

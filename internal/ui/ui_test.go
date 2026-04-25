@@ -28,6 +28,14 @@ func TestHandler_ServeHTTP(t *testing.T) {
 		t.Errorf("expected Content-Type to start with text/html, got %q", contentType)
 	}
 
+	if got := resp.Header.Get("Cache-Control"); got != "no-cache" {
+		t.Errorf("expected Cache-Control no-cache, got %q", got)
+	}
+
+	if got := resp.Header.Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Errorf("expected X-Content-Type-Options nosniff, got %q", got)
+	}
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("failed to read body: %v", err)
@@ -44,8 +52,8 @@ func TestHandler_ServeHTTP(t *testing.T) {
 		`id="voice-select"`,
 		`id="format-select"`,
 		"/api/v1/tts",
-		"/api/v1/providers",
-		"/api/v1/providers/",
+		"'/api/v1/providers'",
+		"'/voices'",
 	}
 
 	for _, marker := range wantMarkers {

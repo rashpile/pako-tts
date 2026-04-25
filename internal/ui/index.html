@@ -247,8 +247,9 @@
                         voiceSelect.appendChild(opt);
                     });
                 })
-                .catch(function() {
+                .catch(function(err) {
                     resetVoices('Default voice');
+                    showError('Could not load voices for "' + name + '": ' + err.message + '. The server default voice will be used and may not be valid for this provider.');
                 });
         }
 
@@ -315,10 +316,13 @@
                 lastObjectURL = url;
                 audioPlayer.src = url;
                 var ts = new Date().toISOString().replace(/[:.]/g, '-');
+                var ext = outputFormat;
+                if (result.contentType.indexOf('audio/mpeg') !== -1) ext = 'mp3';
+                else if (result.contentType.indexOf('audio/wav') !== -1 || result.contentType.indexOf('audio/x-wav') !== -1) ext = 'wav';
                 downloadLink.href = url;
-                downloadLink.download = 'tts-' + ts + '.' + outputFormat;
+                downloadLink.download = 'tts-' + ts + '.' + ext;
                 var sizeKB = (result.blob.size / 1024).toFixed(1);
-                resultMeta.textContent = outputFormat.toUpperCase() + ' • ' + sizeKB + ' KB • ' + (result.contentType || 'audio');
+                resultMeta.textContent = ext.toUpperCase() + ' • ' + sizeKB + ' KB • ' + (result.contentType || 'audio');
                 resultArea.classList.add('visible');
                 setFormDisabled(false);
             })

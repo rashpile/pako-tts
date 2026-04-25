@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -52,6 +54,15 @@ func TestProvidersHandler_ListVoices(t *testing.T) {
 			wantStatus:    http.StatusServiceUnavailable,
 			wantErrorCode: "PROVIDER_UNAVAILABLE",
 		},
+		{
+			name:         "provider returns nil voices serializes as empty array",
+			providerName: "test-provider",
+			listVoicesFunc: func(ctx context.Context) ([]domain.Voice, error) {
+				return nil, nil
+			},
+			wantStatus: http.StatusOK,
+			wantVoices: []domain.Voice{},
+		},
 	}
 
 	for _, tt := range tests {
@@ -80,6 +91,10 @@ func TestProvidersHandler_ListVoices(t *testing.T) {
 				t.Fatalf("expected status %d, got %d", tt.wantStatus, resp.StatusCode)
 			}
 
+			if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+				t.Errorf("expected Content-Type application/json, got %q", ct)
+			}
+
 			if tt.wantErrorCode != "" {
 				var errResp domain.ErrorResponse
 				if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
@@ -88,11 +103,25 @@ func TestProvidersHandler_ListVoices(t *testing.T) {
 				if errResp.Error == nil || errResp.Error.Code != tt.wantErrorCode {
 					t.Fatalf("expected error code %q, got %+v", tt.wantErrorCode, errResp.Error)
 				}
+				if tt.wantErrorCode == "PROVIDER_NOT_FOUND" && !strings.Contains(errResp.Error.Message, tt.providerName) {
+					t.Errorf("expected error message to contain provider name %q, got %q", tt.providerName, errResp.Error.Message)
+				}
 				return
 			}
 
+			rawBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("failed to read response body: %v", err)
+			}
+
+			if len(tt.wantVoices) == 0 {
+				if !strings.Contains(string(rawBody), `"voices":[]`) {
+					t.Errorf("expected voices field to serialize as [] (not null), got %s", rawBody)
+				}
+			}
+
 			var body VoicesListResponse
-			if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+			if err := json.Unmarshal(rawBody, &body); err != nil {
 				t.Fatalf("failed to decode response: %v", err)
 			}
 
