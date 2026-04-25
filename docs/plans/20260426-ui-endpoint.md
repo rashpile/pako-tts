@@ -213,11 +213,11 @@ Add schemas under `components.schemas:`:
 - Modify: `internal/api/routes.go`
 - Modify: `cmd/server/openapi.yaml`
 
-- [ ] add `VoicesListResponse` struct and `ListVoices(w, r)` method to `internal/api/handlers/providers.go` per Technical Details (handler returns 503 via `ErrProviderUnavailable` on upstream failures, matching `tts.go:125`)
-- [ ] register `r.Get("/providers/{name}/voices", providersHandler.ListVoices)` inside the existing `r.Route("/api/v1", ...)` block in `internal/api/routes.go`
-- [ ] add `/api/v1/providers/{name}/voices` path (with 200 / 404 / 503 responses) and `Voice` + `VoicesListResponse` schemas to `cmd/server/openapi.yaml` per Technical Details
-- [ ] create `internal/api/handlers/providers_test.go` with table-driven tests for the new `ListVoices` handler only (keep PR scope tight; do NOT backfill `ListProviders` tests). Cover: success (returns voices for known provider), unknown provider (404 with `PROVIDER_NOT_FOUND`), provider returns error (503 with `PROVIDER_UNAVAILABLE`). Use `MockProvider.ListVoicesFunc` and a test registry similar to `jobs_test.go`
-- [ ] run `go test ./internal/api/handlers/...` — must pass before next task
+- [x] add `VoicesListResponse` struct and `ListVoices(w, r)` method to `internal/api/handlers/providers.go` per Technical Details (handler returns 503 via `ErrProviderUnavailable` on upstream failures, matching `tts.go:125`)
+- [x] register `r.Get("/providers/{name}/voices", providersHandler.ListVoices)` inside the existing `r.Route("/api/v1", ...)` block in `internal/api/routes.go`
+- [x] add `/api/v1/providers/{name}/voices` path (with 200 / 404 / 503 responses) and `Voice` + `VoicesListResponse` schemas to `cmd/server/openapi.yaml` per Technical Details
+- [x] create `internal/api/handlers/providers_test.go` with table-driven tests for the new `ListVoices` handler only (keep PR scope tight; do NOT backfill `ListProviders` tests). Cover: success (returns voices for known provider), unknown provider (404 with `PROVIDER_NOT_FOUND`), provider returns error (503 with `PROVIDER_UNAVAILABLE`). Use `MockProvider.ListVoicesFunc` and a test registry similar to `jobs_test.go`
+- [x] run `go test ./internal/api/handlers/...` — must pass before next task
 
 ### Task 2: Add internal/ui package with embedded HTML and route wiring
 

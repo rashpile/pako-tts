@@ -316,6 +316,40 @@ paths:
                     is_available: true
                 default_provider: "elevenlabs"
 
+  /api/v1/providers/{name}/voices:
+    get:
+      tags:
+        - Providers
+      summary: List Voices for Provider
+      description: Returns voices available for the named provider.
+      operationId: listProviderVoices
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Provider identifier
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Voice list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoicesListResponse"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Provider unavailable (upstream call failed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     TTSRequest:
@@ -547,6 +581,47 @@ components:
         default_provider:
           type: string
           description: Name of the default provider
+
+    Voice:
+      type: object
+      required:
+        - voice_id
+        - name
+        - provider
+      properties:
+        voice_id:
+          type: string
+          description: Voice identifier
+        name:
+          type: string
+          description: Human-readable voice name
+        provider:
+          type: string
+          description: Provider that owns this voice
+        language:
+          type: string
+          description: Voice language code
+        gender:
+          type: string
+          description: Voice gender
+        preview_url:
+          type: string
+          format: uri
+          description: Preview audio URL
+
+    VoicesListResponse:
+      type: object
+      required:
+        - provider
+        - voices
+      properties:
+        provider:
+          type: string
+          description: Provider identifier
+        voices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Voice"
 
     ErrorResponse:
       type: object
