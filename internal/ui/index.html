@@ -158,6 +158,7 @@
         var errorMsg = document.getElementById('error-msg');
 
         var lastObjectURL = null;
+        var voiceLoadToken = 0;
 
         function showError(msg) {
             errorMsg.textContent = msg;
@@ -225,13 +226,16 @@
         }
 
         function loadVoices(name) {
+            hideError();
             resetVoices('Loading voices...');
+            var token = ++voiceLoadToken;
             fetch('/api/v1/providers/' + encodeURIComponent(name) + '/voices')
                 .then(function(res) {
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     return res.json();
                 })
                 .then(function(data) {
+                    if (token !== voiceLoadToken) return;
                     var voices = data.voices || [];
                     voiceSelect.innerHTML = '';
                     var defaultOpt = document.createElement('option');
@@ -248,6 +252,7 @@
                     });
                 })
                 .catch(function(err) {
+                    if (token !== voiceLoadToken) return;
                     resetVoices('Default voice');
                     showError('Could not load voices for "' + name + '": ' + err.message + '. The server default voice will be used and may not be valid for this provider.');
                 });
