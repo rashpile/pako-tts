@@ -251,8 +251,8 @@ Add schemas under `components.schemas:`:
 **Files:**
 - Modify: `README.md`
 
-- [ ] add a short "Web UI" section to `README.md` mentioning `/ui/` is available for trying the API in a browser
-- [ ] move this plan to `docs/plans/completed/`
+- [x] add a short "Web UI" section to `README.md` mentioning `/ui/` is available for trying the API in a browser
+- [x] move this plan to `docs/plans/completed/`
 
 ## Post-Completion
 
