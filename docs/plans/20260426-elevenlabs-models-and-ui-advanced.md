@@ -485,15 +485,15 @@ if (settings) body.voice_settings = settings;
 - Modify: `internal/provider/elevenlabs/provider_test.go`
 - Modify: `config.yaml.example`
 
-- [ ] add `ModelID string \`mapstructure:"model_id"\`` to `pkg/config/config.go:30` `ProviderConfig`
-- [ ] read `model_id` in `loadProvidersConfig` (`config.go:217`) via `getString(providerMap, "model_id")`
-- [ ] add `defaultModelID string` field on `elevenlabs.Provider`; `NewProviderFromConfig` sets it from `cfg.ModelID` (default `"eleven_multilingual_v2"` when blank)
-- [ ] update `Provider.Synthesize` to set `ttsReq.ModelID = req.ModelID` (if non-empty) else `p.defaultModelID`
-- [ ] remove the `defaultModel` constant from `client.go` and the `if req.ModelID == "" { req.ModelID = defaultModel }` block in `TextToSpeech`. Do NOT add a defensive error — keep `Client` dumb. Add a `// model_id must be set by the caller` comment on `TTSRequest.ModelID` so the invariant is documented; the `Provider.Synthesize` path always sets it
-- [ ] update `config.yaml.example` to document the new optional `model_id` field on the elevenlabs provider entry
-- [ ] write tests in `provider_test.go`: (a) `NewProviderFromConfig` defaults `defaultModelID` to `"eleven_multilingual_v2"` when `cfg.ModelID == ""`; (b) `NewProviderFromConfig` honors a custom `cfg.ModelID`; (c) `Synthesize` sends `req.ModelID` when set; (d) `Synthesize` sends `defaultModelID` when `req.ModelID == ""`. Use `httptest.Server` capturing the inbound JSON body
-- [ ] write a config test (extend `pkg/config/config_test.go` if it exists, otherwise add one) verifying `ModelID` is loaded from `providers.list[].model_id`
-- [ ] run `go test ./...` — must pass before next task
+- [x] add `ModelID string \`mapstructure:"model_id"\`` to `pkg/config/config.go:30` `ProviderConfig`
+- [x] read `model_id` in `loadProvidersConfig` (`config.go:217`) via `getString(providerMap, "model_id")`
+- [x] add `defaultModelID string` field on `elevenlabs.Provider`; `NewProviderFromConfig` sets it from `cfg.ModelID` (default `"eleven_multilingual_v2"` when blank)
+- [x] update `Provider.Synthesize` to set `ttsReq.ModelID = req.ModelID` (if non-empty) else `p.defaultModelID` (note: also added `ModelID` to `domain.SynthesisRequest` here since this update requires it; the equivalent Task 4 checkbox is now satisfied)
+- [x] remove the `defaultModel` constant from `client.go` and the `if req.ModelID == "" { req.ModelID = defaultModel }` block in `TextToSpeech`. Do NOT add a defensive error — keep `Client` dumb. Add a `// model_id must be set by the caller` comment on `TTSRequest.ModelID` so the invariant is documented; the `Provider.Synthesize` path always sets it
+- [x] update `config.yaml.example` to document the new optional `model_id` field on the elevenlabs provider entry
+- [x] write tests in `provider_test.go`: (a) `NewProviderFromConfig` defaults `defaultModelID` to `"eleven_multilingual_v2"` when `cfg.ModelID == ""`; (b) `NewProviderFromConfig` honors a custom `cfg.ModelID`; (c) `Synthesize` sends `req.ModelID` when set; (d) `Synthesize` sends `defaultModelID` when `req.ModelID == ""`. Use `httptest.Server` capturing the inbound JSON body
+- [x] write a config test (extend `pkg/config/config_test.go` if it exists, otherwise add one) verifying `ModelID` is loaded from `providers.list[].model_id`
+- [x] run `go test ./...` — must pass before next task
 
 ### Task 3: Add `GET /api/v1/providers/{name}/models` handler + route + OpenAPI
 
@@ -526,7 +526,7 @@ if (settings) body.voice_settings = settings;
 
 > **Mass-update callout:** the `NewJob` signature change touches **31 call sites** total (11 + 16 + 1 + 3). Update them all in the same commit so the build is never broken. A simple `find . -name '*.go' -exec sed -i '' 's/NewJob(\("[^"]*"\), \("[^"]*"\), /NewJob(\1, \2, "", /' {} \;` won't fully work because of mixed identifier vs. literal arg styles — do it manually or with a careful gofmt-aware tool.
 
-- [ ] add `ModelID string` to `domain.SynthesisRequest`
+- [x] add `ModelID string` to `domain.SynthesisRequest` (done in Task 2 as a forward dependency)
 - [ ] add `ModelID string \`json:"model_id,omitempty"\`` to `domain.Job`; update `NewJob` signature to `NewJob(text, voiceID, modelID, providerName, outputFormat string, settings *VoiceSettings) *Job`
 - [ ] update worker at `internal/queue/memory/worker.go:120` to copy `ModelID: job.ModelID` into the constructed `SynthesisRequest`
 - [ ] update **all 31** existing `domain.NewJob` call sites to pass the new `modelID` argument (use `""` for non-test sites; tests should pass `""` unless they're the new model-propagation test below)

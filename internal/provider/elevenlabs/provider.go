@@ -12,23 +12,26 @@ import (
 )
 
 const (
-	providerName  = "elevenlabs"
-	providerType  = "ElevenLabsProvider"
-	maxConcurrent = 4
+	providerName     = "elevenlabs"
+	providerType     = "ElevenLabsProvider"
+	maxConcurrent    = 4
+	fallbackModelID  = "eleven_multilingual_v2"
 )
 
 // Provider implements the TTSProvider interface for ElevenLabs.
 type Provider struct {
-	client     *Client
-	activeJobs int32
-	isDefault  bool
+	client         *Client
+	activeJobs     int32
+	isDefault      bool
+	defaultModelID string
 }
 
 // NewProvider creates a new ElevenLabs provider.
 func NewProvider(apiKey string, isDefault bool) *Provider {
 	return &Provider{
-		client:    NewClient(apiKey),
-		isDefault: isDefault,
+		client:         NewClient(apiKey),
+		isDefault:      isDefault,
+		defaultModelID: fallbackModelID,
 	}
 }
 
@@ -38,9 +41,15 @@ func NewProviderFromConfig(cfg config.ProviderConfig, isDefault bool) (*Provider
 		return nil, fmt.Errorf("elevenlabs provider requires api_key")
 	}
 
+	modelID := cfg.ModelID
+	if modelID == "" {
+		modelID = fallbackModelID
+	}
+
 	return &Provider{
-		client:    NewClient(cfg.APIKey),
-		isDefault: isDefault,
+		client:         NewClient(cfg.APIKey),
+		isDefault:      isDefault,
+		defaultModelID: modelID,
 	}, nil
 }
 
@@ -57,6 +66,13 @@ func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest)
 	// Build ElevenLabs request
 	ttsReq := &TTSRequest{
 		Text: req.Text,
+	}
+
+	// Resolve model id: explicit request value wins; otherwise fall back to provider default.
+	if req.ModelID != "" {
+		ttsReq.ModelID = req.ModelID
+	} else {
+		ttsReq.ModelID = p.defaultModelID
 	}
 
 	// Set output format

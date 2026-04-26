@@ -2,11 +2,16 @@ package elevenlabs
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/pako-tts/server/internal/domain"
+	"github.com/pako-tts/server/pkg/config"
 )
 
 func TestNewProvider(t *testing.T) {
@@ -194,5 +199,93 @@ func TestProvider_ListModels_UpstreamError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "ElevenLabs API error") {
 		t.Errorf("expected wrapped error, got %v", err)
+	}
+}
+
+func TestNewProviderFromConfig_DefaultModelID(t *testing.T) {
+	p, err := NewProviderFromConfig(config.ProviderConfig{
+		Name:   "elevenlabs",
+		Type:   "elevenlabs",
+		APIKey: "test-key",
+	}, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.defaultModelID != "eleven_multilingual_v2" {
+		t.Errorf("expected default model id 'eleven_multilingual_v2', got %q", p.defaultModelID)
+	}
+}
+
+func TestNewProviderFromConfig_CustomModelID(t *testing.T) {
+	p, err := NewProviderFromConfig(config.ProviderConfig{
+		Name:    "elevenlabs",
+		Type:    "elevenlabs",
+		APIKey:  "test-key",
+		ModelID: "eleven_flash_v2_5",
+	}, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.defaultModelID != "eleven_flash_v2_5" {
+		t.Errorf("expected custom model id 'eleven_flash_v2_5', got %q", p.defaultModelID)
+	}
+}
+
+func TestNewProviderFromConfig_RequiresAPIKey(t *testing.T) {
+	if _, err := NewProviderFromConfig(config.ProviderConfig{Type: "elevenlabs"}, true); err == nil {
+		t.Fatal("expected error when api_key missing")
+	}
+}
+
+// captureTTSBody captures the inbound JSON body posted to the fake ElevenLabs server.
+func captureTTSBody(t *testing.T, captured *TTSRequest) http.HandlerFunc {
+	t.Helper()
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read body: %v", err)
+		}
+		if err := json.Unmarshal(body, captured); err != nil {
+			t.Fatalf("unmarshal body: %v", err)
+		}
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write([]byte("fake-audio"))
+	}
+}
+
+func TestProvider_Synthesize_UsesRequestModelID(t *testing.T) {
+	var captured TTSRequest
+	client, srv := newTestClient(t, captureTTSBody(t, &captured))
+	defer srv.Close()
+
+	p := &Provider{client: client, defaultModelID: "eleven_multilingual_v2"}
+	_, err := p.Synthesize(context.Background(), &domain.SynthesisRequest{
+		Text:    "hello",
+		VoiceID: "voice-1",
+		ModelID: "eleven_flash_v2_5",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if captured.ModelID != "eleven_flash_v2_5" {
+		t.Errorf("expected request model_id 'eleven_flash_v2_5', got %q", captured.ModelID)
+	}
+}
+
+func TestProvider_Synthesize_FallsBackToDefaultModelID(t *testing.T) {
+	var captured TTSRequest
+	client, srv := newTestClient(t, captureTTSBody(t, &captured))
+	defer srv.Close()
+
+	p := &Provider{client: client, defaultModelID: "eleven_multilingual_v2"}
+	_, err := p.Synthesize(context.Background(), &domain.SynthesisRequest{
+		Text:    "hello",
+		VoiceID: "voice-1",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if captured.ModelID != "eleven_multilingual_v2" {
+		t.Errorf("expected default model_id sent, got %q", captured.ModelID)
 	}
 }

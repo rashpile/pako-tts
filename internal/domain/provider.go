@@ -40,6 +40,7 @@ type TTSProvider interface {
 type SynthesisRequest struct {
 	Text         string
 	VoiceID      string
+	ModelID      string // optional; provider falls back to its configured default when empty
 	OutputFormat string // "mp3" or "wav"
 	Settings     *VoiceSettings
 }

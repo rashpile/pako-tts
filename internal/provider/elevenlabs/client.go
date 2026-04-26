@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	baseURL      = "https://api.elevenlabs.io/v1"
-	defaultModel = "eleven_multilingual_v2"
+	baseURL = "https://api.elevenlabs.io/v1"
 )
 
 // Client is an HTTP client for the ElevenLabs API.
@@ -36,7 +35,10 @@ func NewClient(apiKey string) *Client {
 
 // TTSRequest represents a text-to-speech request to ElevenLabs.
 type TTSRequest struct {
-	Text          string            `json:"text"`
+	Text string `json:"text"`
+	// ModelID must be set by the caller. Provider.Synthesize always sets it
+	// (either from the request or the configured default). The Client itself
+	// does not apply a fallback; if empty, the upstream API surfaces its own error.
 	ModelID       string            `json:"model_id"`
 	OutputFormat  string            `json:"output_format,omitempty"`
 	VoiceSettings *VoiceSettingsReq `json:"voice_settings,omitempty"`
@@ -82,10 +84,6 @@ type ModelResponse struct {
 // TextToSpeech converts text to speech using ElevenLabs API.
 func (c *Client) TextToSpeech(ctx context.Context, voiceID string, req *TTSRequest) (io.ReadCloser, string, error) {
 	url := fmt.Sprintf("%s/text-to-speech/%s", c.baseURL, voiceID)
-
-	if req.ModelID == "" {
-		req.ModelID = defaultModel
-	}
 
 	body, err := json.Marshal(req)
 	if err != nil {
