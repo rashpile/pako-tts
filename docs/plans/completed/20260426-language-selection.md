@@ -336,9 +336,9 @@ if (languageCode) body.language_code = languageCode;
 - Modify: `README.md` (mention `language_code` next to the existing `model_id` mention)
 - Modify: `docs/todo/todo.md` (mark the language selection item as complete)
 
-- [ ] add a short note to `README.md` mentioning the optional `language_code` request field and the UI Language picker
-- [ ] update `docs/todo/todo.md`: check off the language selection item (or remove the section if no other todos remain in it)
-- [ ] move this plan to `docs/plans/completed/` (`mkdir -p docs/plans/completed && mv docs/plans/20260426-language-selection.md docs/plans/completed/`)
+- [x] add a short note to `README.md` mentioning the optional `language_code` request field and the UI Language picker
+- [x] update `docs/todo/todo.md`: check off the language selection item (or remove the section if no other todos remain in it)
+- [x] move this plan to `docs/plans/completed/` (`mkdir -p docs/plans/completed && mv docs/plans/20260426-language-selection.md docs/plans/completed/`)
 
 ## Post-Completion
 
