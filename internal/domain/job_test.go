@@ -47,17 +47,22 @@ func TestNewJob(t *testing.T) {
 	}
 }
 
-func TestNewJob_EmptyModelID(t *testing.T) {
+func TestNewJob_EmptyOptionalFields(t *testing.T) {
 	job := NewJob("test", "voice", "", "", "provider", "mp3", nil)
-	if job.ModelID != "" {
-		t.Errorf("Expected empty ModelID, got %q", job.ModelID)
-	}
-}
 
-func TestNewJob_EmptyLanguageCode(t *testing.T) {
-	job := NewJob("test", "voice", "", "", "provider", "mp3", nil)
-	if job.LanguageCode != "" {
-		t.Errorf("Expected empty LanguageCode, got %q", job.LanguageCode)
+	tests := []struct {
+		name string
+		got  string
+	}{
+		{"ModelID", job.ModelID},
+		{"LanguageCode", job.LanguageCode},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != "" {
+				t.Errorf("Expected empty %s, got %q", tt.name, tt.got)
+			}
+		})
 	}
 }
 

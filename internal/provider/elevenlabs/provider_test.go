@@ -353,7 +353,11 @@ func TestProvider_Synthesize_OmitsLanguageCodeWhenEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if strings.Contains(string(capturedRaw), "language_code") {
+	var asMap map[string]any
+	if err := json.Unmarshal(capturedRaw, &asMap); err != nil {
+		t.Fatalf("decode raw body: %v", err)
+	}
+	if _, ok := asMap["language_code"]; ok {
 		t.Errorf("expected raw body to NOT contain language_code key, got %s", string(capturedRaw))
 	}
 }
