@@ -221,7 +221,7 @@ func loadProvidersConfig(v *viper.Viper, cfg *Config) error {
 			MaxConcurrent:  getInt(providerMap, "max_concurrent", 4),
 			Timeout:        getDuration(providerMap, "timeout", 30*time.Second),
 			APIKey:         expandEnvVars(getString(providerMap, "api_key")),
-			ModelID:        getString(providerMap, "model_id"),
+			ModelID:        expandEnvVars(getString(providerMap, "model_id")),
 			BaseURL:        getString(providerMap, "base_url"),
 			TTSEndpoint:    getString(providerMap, "tts_endpoint"),
 			VoicesEndpoint: getString(providerMap, "voices_endpoint"),
