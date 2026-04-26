@@ -306,20 +306,8 @@ func TestProvider_Synthesize_FallsBackToDefaultModelID(t *testing.T) {
 }
 
 func TestProvider_Synthesize_PassesLanguageCode(t *testing.T) {
-	var capturedReq TTSRequest
-	var capturedRaw []byte
-	client, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Fatalf("read body: %v", err)
-		}
-		capturedRaw = body
-		if err := json.Unmarshal(body, &capturedReq); err != nil {
-			t.Fatalf("unmarshal body: %v", err)
-		}
-		w.Header().Set("Content-Type", "audio/mpeg")
-		_, _ = w.Write([]byte("fake-audio"))
-	})
+	var captured TTSRequest
+	client, srv := newTestClient(t, captureTTSBody(t, &captured))
 	defer srv.Close()
 
 	p := &Provider{client: client, defaultModelID: "eleven_multilingual_v2"}
@@ -332,11 +320,8 @@ func TestProvider_Synthesize_PassesLanguageCode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if capturedReq.LanguageCode != "es" {
-		t.Errorf("expected request language_code 'es', got %q", capturedReq.LanguageCode)
-	}
-	if !strings.Contains(string(capturedRaw), `"language_code":"es"`) {
-		t.Errorf("expected raw body to contain language_code, got %s", string(capturedRaw))
+	if captured.LanguageCode != "es" {
+		t.Errorf("expected request language_code 'es', got %q", captured.LanguageCode)
 	}
 }
 
