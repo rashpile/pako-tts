@@ -68,6 +68,12 @@ docker run -p 8080:8080 -e ELEVENLABS_API_KEY=your-key pako-tts
 
 A simple browser UI is available at [`/ui/`](http://localhost:8080/ui/) for trying the API without writing curl commands. It lets you pick a provider, choose a voice, enter text, select an output format (mp3/wav), and play or download the synthesized audio in-browser. The UI is a single embedded HTML file served by the same Go binary — no extra build step or static-asset hosting required.
 
+## Providers
+
+Provider-specific docs (parameters, voice settings, examples, known limitations):
+
+- **[ElevenLabs](docs/elevenlabs.md)** — voice settings (stability, similarity_boost, style, use_speaker_boost), output formats, examples
+
 ## Usage Examples
 
 ### Synchronous TTS (short text)
