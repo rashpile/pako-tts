@@ -285,10 +285,10 @@ if (languageCode) body.language_code = languageCode;
 - Modify: `internal/provider/elevenlabs/provider.go` (set `ttsReq.LanguageCode` from `req.LanguageCode`)
 - Modify: `internal/provider/elevenlabs/provider_test.go` (assert outbound JSON body contains `language_code` when set)
 
-- [ ] add `LanguageCode string \`json:"language_code,omitempty"\`` to `elevenlabs.TTSRequest` in `client.go`, immediately after `ModelID`
-- [ ] in `elevenlabs.Provider.Synthesize` (`provider.go`), after the existing `ModelID` assignment block, add: `if req.LanguageCode != "" { ttsReq.LanguageCode = req.LanguageCode }` (no else — empty stays empty so the upstream uses model default)
-- [ ] extend the existing `Synthesize` test in `provider_test.go` to: (a) call `Synthesize` with `req.LanguageCode = "en"` and assert the captured upstream HTTP body contains `"language_code":"en"`; (b) call without `LanguageCode` and assert the body does NOT contain a `language_code` key (verifies `omitempty`)
-- [ ] run `go test ./internal/provider/elevenlabs/...` — must pass before next task
+- [x] add `LanguageCode string \`json:"language_code,omitempty"\`` to `elevenlabs.TTSRequest` in `client.go`, immediately after `ModelID`
+- [x] in `elevenlabs.Provider.Synthesize` (`provider.go`), after the existing `ModelID` assignment block, add: `if req.LanguageCode != "" { ttsReq.LanguageCode = req.LanguageCode }` (no else — empty stays empty so the upstream uses model default)
+- [x] extend the existing `Synthesize` test in `provider_test.go` to: (a) call `Synthesize` with `req.LanguageCode = "en"` and assert the captured upstream HTTP body contains `"language_code":"en"`; (b) call without `LanguageCode` and assert the body does NOT contain a `language_code` key (verifies `omitempty`)
+- [x] run `go test ./internal/provider/elevenlabs/...` — must pass before next task
 
 ### Task 3: Selfhosted provider explicitly ignores `language_code`
 

@@ -80,6 +80,11 @@ func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest)
 		ttsReq.ModelID = p.defaultModelID
 	}
 
+	// Forward optional ISO 639-1 language code; empty means "let model use its default".
+	if req.LanguageCode != "" {
+		ttsReq.LanguageCode = req.LanguageCode
+	}
+
 	// Set output format
 	switch req.OutputFormat {
 	case "wav":
