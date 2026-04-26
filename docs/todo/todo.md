@@ -10,3 +10,7 @@
 ## UI
 
 - [x] **Show provider-specific parameters in the UI** — surface provider-specific knobs (e.g. ElevenLabs `voice_settings.stability`, `similarity_boost`, `style`, `use_speaker_boost`) in `internal/ui/index.html` so users can experiment without curl. Render the relevant controls when a provider is selected (other providers will get their own param sets). Keep the form layout simple — sliders or number inputs grouped under a collapsible "Advanced" section so the basic flow stays uncluttered. Send chosen values as `voice_settings` in the POST body.
+
+## Language selection
+
+- [ ] **Add language selection to TTS request and UI** — accept optional `language_code` (ISO 639-1) on `POST /api/v1/tts` and `POST /api/v1/jobs`. Plumb through `domain.SynthesisRequest`, `domain.Job` (+ `NewJob`), the worker, and `elevenlabs.TTSRequest.LanguageCode`. ElevenLabs returns a model-not-supports-language error verbatim — surface it as 503 like other provider errors. Add a Language `<select>` in `internal/ui/index.html`, populated from the union of `languages[]` across the loaded models for the selected provider; send as `language_code` on submit, leave empty for provider/model default. Update OpenAPI spec. Selfhosted provider can ignore the field for now. See `docs/research/research-elevenlab.md:56` for ElevenLabs API details.
