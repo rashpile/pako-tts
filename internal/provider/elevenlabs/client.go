@@ -19,13 +19,15 @@ const (
 // Client is an HTTP client for the ElevenLabs API.
 type Client struct {
 	apiKey     string
+	baseURL    string
 	httpClient *http.Client
 }
 
 // NewClient creates a new ElevenLabs API client.
 func NewClient(apiKey string) *Client {
 	return &Client{
-		apiKey: apiKey,
+		apiKey:  apiKey,
+		baseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout: 120 * time.Second,
 		},
@@ -62,9 +64,24 @@ type VoicesResponse struct {
 	Voices []VoiceResponse `json:"voices"`
 }
 
+// ModelLanguage represents a language entry on an ElevenLabs model.
+type ModelLanguage struct {
+	LanguageID string `json:"language_id"`
+	Name       string `json:"name"`
+}
+
+// ModelResponse represents a model from the ElevenLabs API.
+type ModelResponse struct {
+	ModelID            string          `json:"model_id"`
+	Name               string          `json:"name"`
+	Description        string          `json:"description"`
+	CanDoTextToSpeech  bool            `json:"can_do_text_to_speech"`
+	Languages          []ModelLanguage `json:"languages"`
+}
+
 // TextToSpeech converts text to speech using ElevenLabs API.
 func (c *Client) TextToSpeech(ctx context.Context, voiceID string, req *TTSRequest) (io.ReadCloser, string, error) {
-	url := fmt.Sprintf("%s/text-to-speech/%s", baseURL, voiceID)
+	url := fmt.Sprintf("%s/text-to-speech/%s", c.baseURL, voiceID)
 
 	if req.ModelID == "" {
 		req.ModelID = defaultModel
@@ -105,7 +122,7 @@ func (c *Client) TextToSpeech(ctx context.Context, voiceID string, req *TTSReque
 
 // GetVoices retrieves available voices from ElevenLabs API.
 func (c *Client) GetVoices(ctx context.Context) (*VoicesResponse, error) {
-	url := fmt.Sprintf("%s/voices", baseURL)
+	url := fmt.Sprintf("%s/voices", c.baseURL)
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -133,9 +150,39 @@ func (c *Client) GetVoices(ctx context.Context) (*VoicesResponse, error) {
 	return &voices, nil
 }
 
+// GetModels retrieves available models from ElevenLabs API.
+func (c *Client) GetModels(ctx context.Context) ([]ModelResponse, error) {
+	url := fmt.Sprintf("%s/models", c.baseURL)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("xi-api-key", c.apiKey)
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.StatusCode != http.StatusOK {
+		errBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("ElevenLabs API error (status %d): %s", resp.StatusCode, string(errBody))
+	}
+
+	var models []ModelResponse
+	if err := json.NewDecoder(resp.Body).Decode(&models); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return models, nil
+}
+
 // CheckHealth checks if the ElevenLabs API is available.
 func (c *Client) CheckHealth(ctx context.Context) bool {
-	url := fmt.Sprintf("%s/user", baseURL)
+	url := fmt.Sprintf("%s/user", c.baseURL)
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

@@ -466,15 +466,15 @@ if (settings) body.voice_settings = settings;
 
 > **Order matters:** the interface change in step 2 below will break compilation of every test that uses `MockProvider` until step 3 (MockProvider) is added. Land steps 2–6 in a single commit, or use the order below which adds MockProvider's `ListModels` before the new providers' implementations.
 
-- [ ] create `internal/domain/model.go` with the `Model` struct (fields: `ModelID`, `Name`, `Provider`, `Description`, `Languages []string`) and JSON tags per Technical Details
-- [ ] add `ListModels(ctx context.Context) ([]Model, error)` to the `TTSProvider` interface in `internal/domain/provider.go`
-- [ ] add `ListModelsFunc` field and `ListModels(ctx)` method on `mocks.MockProvider` — do this **immediately** so the test build does not fail mid-task
-- [ ] add `GetModels(ctx)` to `internal/provider/elevenlabs/client.go` calling `GET /v1/models` with internal response structs that decode only `model_id`, `name`, `description`, `can_do_text_to_speech`, and the nested `languages: [{language_id, name}]` array
-- [ ] implement `Provider.ListModels` in `internal/provider/elevenlabs/provider.go`: skip models where `can_do_text_to_speech == false`, flatten languages to `[]string{language_id...}`
-- [ ] implement `Provider.ListModels` in `internal/provider/selfhosted/provider.go` returning `(nil, nil)` with a doc comment explaining why (selfhosted's "voices" upstream IS its model list — exposing them again as "models" would just duplicate the dropdown). Do NOT delegate to `client.GetModels` here
-- [ ] write unit tests for `elevenlabs.Provider.ListModels` using `httptest.Server` (success: returns mapped `[]domain.Model` with languages flattened; success: filters out non-TTS models; error: returns wrapped error). Mirror existing test file patterns in `provider_test.go`
-- [ ] write unit test for `selfhosted.Provider.ListModels` asserting it returns `(nil, nil)` (no upstream call) — and that the existing `ListVoices` still works
-- [ ] run `go test ./internal/...` — must pass before next task
+- [x] create `internal/domain/model.go` with the `Model` struct (fields: `ModelID`, `Name`, `Provider`, `Description`, `Languages []string`) and JSON tags per Technical Details
+- [x] add `ListModels(ctx context.Context) ([]Model, error)` to the `TTSProvider` interface in `internal/domain/provider.go`
+- [x] add `ListModelsFunc` field and `ListModels(ctx)` method on `mocks.MockProvider` — do this **immediately** so the test build does not fail mid-task
+- [x] add `GetModels(ctx)` to `internal/provider/elevenlabs/client.go` calling `GET /v1/models` with internal response structs that decode only `model_id`, `name`, `description`, `can_do_text_to_speech`, and the nested `languages: [{language_id, name}]` array
+- [x] implement `Provider.ListModels` in `internal/provider/elevenlabs/provider.go`: skip models where `can_do_text_to_speech == false`, flatten languages to `[]string{language_id...}`
+- [x] implement `Provider.ListModels` in `internal/provider/selfhosted/provider.go` returning `(nil, nil)` with a doc comment explaining why (selfhosted's "voices" upstream IS its model list — exposing them again as "models" would just duplicate the dropdown). Do NOT delegate to `client.GetModels` here
+- [x] write unit tests for `elevenlabs.Provider.ListModels` using `httptest.Server` (success: returns mapped `[]domain.Model` with languages flattened; success: filters out non-TTS models; error: returns wrapped error). Mirror existing test file patterns in `provider_test.go`
+- [x] write unit test for `selfhosted.Provider.ListModels` asserting it returns `(nil, nil)` (no upstream call) — and that the existing `ListVoices` still works
+- [x] run `go test ./internal/...` — must pass before next task
 
 ### Task 2: Wire `model_id` config + remove client fallback
 

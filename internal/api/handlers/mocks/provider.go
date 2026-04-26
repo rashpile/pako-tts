@@ -15,6 +15,7 @@ type MockProvider struct {
 	ActiveJobsVal     int
 	SynthesizeFunc    func(ctx context.Context, req *domain.SynthesisRequest) (*domain.SynthesisResult, error)
 	ListVoicesFunc    func(ctx context.Context) ([]domain.Voice, error)
+	ListModelsFunc    func(ctx context.Context) ([]domain.Model, error)
 	SynthesizeError   error
 	SynthesizeResult  *domain.SynthesisResult
 }
@@ -59,6 +60,26 @@ func (m *MockProvider) ListVoices(ctx context.Context) ([]domain.Voice, error) {
 			Provider: m.NameValue,
 			Language: "en",
 			Gender:   "male",
+		},
+	}, nil
+}
+
+func (m *MockProvider) ListModels(ctx context.Context) ([]domain.Model, error) {
+	if m.ListModelsFunc != nil {
+		return m.ListModelsFunc(ctx)
+	}
+	return []domain.Model{
+		{
+			ModelID:   "model1",
+			Name:      "Test Model 1",
+			Provider:  m.NameValue,
+			Languages: []string{"en"},
+		},
+		{
+			ModelID:   "model2",
+			Name:      "Test Model 2",
+			Provider:  m.NameValue,
+			Languages: []string{"en", "es"},
 		},
 	}, nil
 }

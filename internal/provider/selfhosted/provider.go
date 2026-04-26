@@ -157,6 +157,19 @@ func (p *Provider) ListVoices(ctx context.Context) ([]domain.Voice, error) {
 	return voices, nil
 }
 
+// ListModels returns available models for selfhosted.
+//
+// Selfhosted's upstream `voices_endpoint` defaults to `/api/v1/models`, so
+// `ListVoices` already returns the upstream model list. Returning the same
+// items here would duplicate the dropdowns in the UI and produce confusing
+// `voice_id == model_id` request bodies. Returning (nil, nil) is intentional —
+// the handler normalizes nil to `[]`, and the UI's Model dropdown then shows
+// only "Default model", which is the correct UX for selfhosted (no separate
+// model concept distinct from voices).
+func (p *Provider) ListModels(ctx context.Context) ([]domain.Model, error) {
+	return nil, nil
+}
+
 // IsAvailable checks if the provider is available.
 func (p *Provider) IsAvailable(ctx context.Context) bool {
 	health, err := p.client.CheckHealth(ctx)

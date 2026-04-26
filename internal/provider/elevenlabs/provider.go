@@ -127,6 +127,35 @@ func (p *Provider) ListVoices(ctx context.Context) ([]domain.Voice, error) {
 	return voices, nil
 }
 
+// ListModels returns available text-to-speech models for ElevenLabs.
+func (p *Provider) ListModels(ctx context.Context) ([]domain.Model, error) {
+	resp, err := p.client.GetModels(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	models := make([]domain.Model, 0, len(resp))
+	for _, m := range resp {
+		if !m.CanDoTextToSpeech {
+			continue
+		}
+		langs := make([]string, 0, len(m.Languages))
+		for _, l := range m.Languages {
+			if l.LanguageID != "" {
+				langs = append(langs, l.LanguageID)
+			}
+		}
+		models = append(models, domain.Model{
+			ModelID:     m.ModelID,
+			Name:        m.Name,
+			Provider:    providerName,
+			Description: m.Description,
+			Languages:   langs,
+		})
+	}
+	return models, nil
+}
+
 // IsAvailable checks if the provider is available.
 func (p *Provider) IsAvailable(ctx context.Context) bool {
 	return p.client.CheckHealth(ctx)
