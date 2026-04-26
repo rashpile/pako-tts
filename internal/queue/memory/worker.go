@@ -121,6 +121,7 @@ func (w *Worker) processJob(ctx context.Context, job *domain.Job, logger *zap.Lo
 		Text:         job.Text,
 		VoiceID:      job.VoiceID,
 		ModelID:      job.ModelID,
+		LanguageCode: job.LanguageCode,
 		OutputFormat: job.OutputFormat,
 		Settings:     job.VoiceSettings,
 	}

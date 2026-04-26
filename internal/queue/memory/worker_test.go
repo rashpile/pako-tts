@@ -101,7 +101,7 @@ func TestWorker_PropagatesJobModelIDToSynthesisRequest(t *testing.T) {
 	worker.Start(ctx, 1)
 	defer worker.Stop()
 
-	job := domain.NewJob("hello", "voice1", "eleven_v3", "fake-provider", "mp3", nil)
+	job := domain.NewJob("hello", "voice1", "eleven_v3", "", "fake-provider", "mp3", nil)
 	if err := queue.Enqueue(ctx, job); err != nil {
 		t.Fatalf("failed to enqueue job: %v", err)
 	}
@@ -122,5 +122,41 @@ func TestWorker_PropagatesJobModelIDToSynthesisRequest(t *testing.T) {
 	}
 	if captured.VoiceID != "voice1" {
 		t.Errorf("expected SynthesisRequest.VoiceID %q, got %q", "voice1", captured.VoiceID)
+	}
+}
+
+func TestWorker_PropagatesJobLanguageCodeToSynthesisRequest(t *testing.T) {
+	logger := zap.NewNop()
+	queue := NewQueue(10)
+	provider := newFakeProvider()
+	registry := &fakeRegistry{provider: provider}
+	storage := &fakeStorage{}
+
+	worker := NewWorker(queue, registry, storage, logger, 24)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	worker.Start(ctx, 1)
+	defer worker.Stop()
+
+	job := domain.NewJob("hola", "voice1", "eleven_v3", "es", "fake-provider", "mp3", nil)
+	if err := queue.Enqueue(ctx, job); err != nil {
+		t.Fatalf("failed to enqueue job: %v", err)
+	}
+
+	// Wait for the worker to process the job (or timeout).
+	select {
+	case <-provider.done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for worker to call Synthesize")
+	}
+
+	captured := provider.capturedRequest()
+	if captured == nil {
+		t.Fatal("expected provider.Synthesize to be called")
+	}
+	if captured.LanguageCode != "es" {
+		t.Errorf("expected SynthesisRequest.LanguageCode %q, got %q", "es", captured.LanguageCode)
 	}
 }

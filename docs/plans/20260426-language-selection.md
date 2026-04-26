@@ -265,18 +265,18 @@ if (languageCode) body.language_code = languageCode;
 
 > **Mass-update callout:** the `NewJob` signature change touches **32 call sites** total: 11 in `internal/domain/job_test.go` + 16 in `internal/queue/memory/queue_test.go` + 1 in `internal/queue/memory/worker_test.go` (line 104, easy to miss) + 1 in `internal/api/handlers/jobs.go` + 3 in `internal/api/handlers/jobs_test.go`. Update them all in the same commit so the build is never broken. Insert `""` at position 4 (after `modelID`). Quick verification: `grep -rn "NewJob(" --include="*.go" .` should return 32 results.
 
-- [ ] add `LanguageCode string` to `domain.SynthesisRequest`
-- [ ] add `LanguageCode string \`json:"language_code,omitempty"\`` to `domain.Job`; update `NewJob` signature to insert `languageCode string` after `modelID`
-- [ ] update all **32** existing `domain.NewJob` call sites to pass the new `""` argument at position 4
-- [ ] update worker (`internal/queue/memory/worker.go:123`) to copy `LanguageCode: job.LanguageCode` into the `SynthesisRequest`
-- [ ] add `LanguageCode string \`json:"language_code,omitempty"\`` to `handlers.TTSRequest`; set `synthReq.LanguageCode = req.LanguageCode` in `SynthesizeTTS`
-- [ ] add `LanguageCode string \`json:"language_code,omitempty"\`` to `handlers.JobCreateRequest`; pass it to `domain.NewJob`
-- [ ] update `cmd/server/openapi.yaml`: add `language_code` (with description per Technical Details) to both `TTSRequest` and `JobCreateRequest` schemas — placed immediately after `model_id`
-- [ ] extend `TestNewJob` in `internal/domain/job_test.go` to assert the new `LanguageCode` field is stored on the returned `*Job`
-- [ ] extend `internal/api/handlers/tts_test.go` with an assertion (or a new sibling test) that posting `{"text":"x","language_code":"en"}` causes the captured `*domain.SynthesisRequest` to have `LanguageCode == "en"`; assert it remains `""` when the field is omitted
-- [ ] extend `internal/api/handlers/jobs_test.go` with `TestJobsHandler_SubmitJob_PassesLanguageCode` (matching the existing `TestJobsHandler_SubmitJob_PassesModelID` naming): post `{"text":"x","language_code":"en"}`; fetch the enqueued job from the mock queue; assert `job.LanguageCode == "en"`
-- [ ] extend `internal/queue/memory/worker_test.go` with a propagation assertion: enqueue a job with `LanguageCode: "en"`, run one tick of the worker against a `MockProvider` whose `SynthesizeFunc` captures the request, assert captured `req.LanguageCode == "en"`
-- [ ] run `go test ./...` — must pass before next task
+- [x] add `LanguageCode string` to `domain.SynthesisRequest`
+- [x] add `LanguageCode string \`json:"language_code,omitempty"\`` to `domain.Job`; update `NewJob` signature to insert `languageCode string` after `modelID`
+- [x] update all **32** existing `domain.NewJob` call sites to pass the new `""` argument at position 4
+- [x] update worker (`internal/queue/memory/worker.go:123`) to copy `LanguageCode: job.LanguageCode` into the `SynthesisRequest`
+- [x] add `LanguageCode string \`json:"language_code,omitempty"\`` to `handlers.TTSRequest`; set `synthReq.LanguageCode = req.LanguageCode` in `SynthesizeTTS`
+- [x] add `LanguageCode string \`json:"language_code,omitempty"\`` to `handlers.JobCreateRequest`; pass it to `domain.NewJob`
+- [x] update `cmd/server/openapi.yaml`: add `language_code` (with description per Technical Details) to both `TTSRequest` and `JobCreateRequest` schemas — placed immediately after `model_id`
+- [x] extend `TestNewJob` in `internal/domain/job_test.go` to assert the new `LanguageCode` field is stored on the returned `*Job`
+- [x] extend `internal/api/handlers/tts_test.go` with an assertion (or a new sibling test) that posting `{"text":"x","language_code":"en"}` causes the captured `*domain.SynthesisRequest` to have `LanguageCode == "en"`; assert it remains `""` when the field is omitted
+- [x] extend `internal/api/handlers/jobs_test.go` with `TestJobsHandler_SubmitJob_PassesLanguageCode` (matching the existing `TestJobsHandler_SubmitJob_PassesModelID` naming): post `{"text":"x","language_code":"en"}`; fetch the enqueued job from the mock queue; assert `job.LanguageCode == "en"`
+- [x] extend `internal/queue/memory/worker_test.go` with a propagation assertion: enqueue a job with `LanguageCode: "en"`, run one tick of the worker against a `MockProvider` whose `SynthesizeFunc` captures the request, assert captured `req.LanguageCode == "en"`
+- [x] run `go test ./...` — must pass before next task
 
 ### Task 2: ElevenLabs provider sends `language_code` to upstream
 

@@ -41,6 +41,7 @@ type SynthesisRequest struct {
 	Text         string
 	VoiceID      string
 	ModelID      string // optional; provider falls back to its configured default when empty
+	LanguageCode string // optional; ISO 639-1 (e.g. "en"). Provider/model default when empty.
 	OutputFormat string // "mp3" or "wav"
 	Settings     *VoiceSettings
 }

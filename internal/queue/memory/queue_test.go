@@ -26,7 +26,7 @@ func TestQueue_Enqueue(t *testing.T) {
 	queue := NewQueue(10)
 	ctx := context.Background()
 
-	job := domain.NewJob("test", "voice", "", "provider", "mp3", nil)
+	job := domain.NewJob("test", "voice", "", "", "provider", "mp3", nil)
 
 	err := queue.Enqueue(ctx, job)
 	if err != nil {
@@ -49,7 +49,7 @@ func TestQueue_Enqueue_ClosedQueue(t *testing.T) {
 
 	queue.Close() //nolint:errcheck
 
-	job := domain.NewJob("test", "voice", "", "provider", "mp3", nil)
+	job := domain.NewJob("test", "voice", "", "", "provider", "mp3", nil)
 	err := queue.Enqueue(ctx, job)
 
 	if err != context.Canceled {
@@ -62,13 +62,13 @@ func TestQueue_Enqueue_ContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Fill the buffer
-	job1 := domain.NewJob("test1", "voice", "", "provider", "mp3", nil)
+	job1 := domain.NewJob("test1", "voice", "", "", "provider", "mp3", nil)
 	queue.Enqueue(ctx, job1) //nolint:errcheck
 
 	// Cancel context before second enqueue
 	cancel()
 
-	job2 := domain.NewJob("test2", "voice", "", "provider", "mp3", nil)
+	job2 := domain.NewJob("test2", "voice", "", "", "provider", "mp3", nil)
 	err := queue.Enqueue(ctx, job2)
 
 	if err != context.Canceled {
@@ -80,7 +80,7 @@ func TestQueue_Dequeue(t *testing.T) {
 	queue := NewQueue(10)
 	ctx := context.Background()
 
-	job := domain.NewJob("test", "voice", "", "provider", "mp3", nil)
+	job := domain.NewJob("test", "voice", "", "", "provider", "mp3", nil)
 	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	dequeuedJob, err := queue.Dequeue(ctx)
@@ -124,7 +124,7 @@ func TestQueue_GetJob(t *testing.T) {
 	queue := NewQueue(10)
 	ctx := context.Background()
 
-	job := domain.NewJob("test", "voice", "", "provider", "mp3", nil)
+	job := domain.NewJob("test", "voice", "", "", "provider", "mp3", nil)
 	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	retrievedJob, err := queue.GetJob(ctx, job.ID)
@@ -151,7 +151,7 @@ func TestQueue_UpdateJob(t *testing.T) {
 	queue := NewQueue(10)
 	ctx := context.Background()
 
-	job := domain.NewJob("test", "voice", "", "provider", "mp3", nil)
+	job := domain.NewJob("test", "voice", "", "", "provider", "mp3", nil)
 	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	job.SetProcessing()
@@ -170,7 +170,7 @@ func TestQueue_UpdateJob_NotFound(t *testing.T) {
 	queue := NewQueue(10)
 	ctx := context.Background()
 
-	job := domain.NewJob("test", "voice", "", "provider", "mp3", nil)
+	job := domain.NewJob("test", "voice", "", "", "provider", "mp3", nil)
 	// Don't enqueue, just try to update
 
 	err := queue.UpdateJob(ctx, job)
@@ -185,9 +185,9 @@ func TestQueue_ListJobs(t *testing.T) {
 	ctx := context.Background()
 
 	// Create jobs with different statuses
-	job1 := domain.NewJob("test1", "voice", "", "provider", "mp3", nil)
-	job2 := domain.NewJob("test2", "voice", "", "provider", "mp3", nil)
-	job3 := domain.NewJob("test3", "voice", "", "provider", "mp3", nil)
+	job1 := domain.NewJob("test1", "voice", "", "", "provider", "mp3", nil)
+	job2 := domain.NewJob("test2", "voice", "", "", "provider", "mp3", nil)
+	job3 := domain.NewJob("test3", "voice", "", "", "provider", "mp3", nil)
 
 	queue.Enqueue(ctx, job1) //nolint:errcheck
 	queue.Enqueue(ctx, job2) //nolint:errcheck
@@ -227,7 +227,7 @@ func TestQueue_DeleteJob(t *testing.T) {
 	queue := NewQueue(10)
 	ctx := context.Background()
 
-	job := domain.NewJob("test", "voice", "", "provider", "mp3", nil)
+	job := domain.NewJob("test", "voice", "", "", "provider", "mp3", nil)
 	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	err := queue.DeleteJob(ctx, job.ID)
@@ -261,10 +261,10 @@ func TestQueue_Stats(t *testing.T) {
 	ctx := context.Background()
 
 	// Create jobs with different statuses
-	job1 := domain.NewJob("test1", "voice", "", "provider", "mp3", nil)
-	job2 := domain.NewJob("test2", "voice", "", "provider", "mp3", nil)
-	job3 := domain.NewJob("test3", "voice", "", "provider", "mp3", nil)
-	job4 := domain.NewJob("test4", "voice", "", "provider", "mp3", nil)
+	job1 := domain.NewJob("test1", "voice", "", "", "provider", "mp3", nil)
+	job2 := domain.NewJob("test2", "voice", "", "", "provider", "mp3", nil)
+	job3 := domain.NewJob("test3", "voice", "", "", "provider", "mp3", nil)
+	job4 := domain.NewJob("test4", "voice", "", "", "provider", "mp3", nil)
 
 	queue.Enqueue(ctx, job1) //nolint:errcheck
 	queue.Enqueue(ctx, job2) //nolint:errcheck
