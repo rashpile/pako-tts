@@ -1,4 +1,4 @@
-.PHONY: build test lint run clean deps fmt vet
+.PHONY: help build test test-coverage lint fmt vet run dev clean deps install-tools build-linux docker-build docker-run check
 
 # Binary name
 BINARY_NAME=pako-tts
@@ -12,66 +12,54 @@ GOFMT=$(GOCMD) fmt
 GOVET=$(GOCMD) vet
 GOMOD=$(GOCMD) mod
 
-# Build the application
-build:
+help: ## Show this help
+	@awk 'BEGIN {FS = ":.*?## "; printf "Usage: make <target>\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?## / {printf "  %-16s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+build: ## Build the application binary into bin/
 	@mkdir -p $(BUILD_DIR)
 	$(GOBUILD) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/server
 
-# Run tests
-test:
+test: ## Run all tests with race detector
 	$(GOTEST) -v -race ./...
 
-# Run tests with coverage
-test-coverage:
+test-coverage: ## Run tests and generate HTML coverage report
 	$(GOTEST) -v -race -coverprofile=coverage.out ./...
 	$(GOCMD) tool cover -html=coverage.out -o coverage.html
 
-# Run linter (requires golangci-lint)
-lint:
+lint: ## Run golangci-lint
 	golangci-lint run ./...
 
-# Format code
-fmt:
+fmt: ## Format Go code
 	$(GOFMT) ./...
 
-# Vet code
-vet:
+vet: ## Run go vet
 	$(GOVET) ./...
 
-# Run the application
-run:
+run: ## Run the application locally on HTTP_PORT=7009
 	set -a; source ./.env; set +a; HTTP_PORT=7009 $(GOCMD) run ./cmd/server
 
-# Run with hot reload (requires air)
-dev:
+dev: ## Run with hot reload (requires air)
 	air
 
-# Clean build artifacts
-clean:
+clean: ## Remove build artifacts and coverage files
 	rm -rf $(BUILD_DIR)
 	rm -f coverage.out coverage.html
 
-# Download dependencies
-deps:
+deps: ## Download and tidy module dependencies
 	$(GOMOD) download
 	$(GOMOD) tidy
 
-# Install development tools
-install-tools:
+install-tools: ## Install development tools (golangci-lint, air)
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install github.com/air-verse/air@latest
 
-# Build for Docker
-build-linux:
+build-linux: ## Cross-compile a linux/amd64 binary
 	GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 ./cmd/server
 
-# Docker build
-docker-build:
+docker-build: ## Build the Docker image (pako-tts:latest)
 	docker build -t pako-tts:latest .
 
-# Docker run
-docker-run:
+docker-run: ## Run the Docker image with .env on port 7009
 	docker run -p 7009:8080 --env-file .env pako-tts:latest
 
-# All checks before commit
-check: fmt vet lint test
+check: fmt vet lint test ## Run fmt, vet, lint, and tests
