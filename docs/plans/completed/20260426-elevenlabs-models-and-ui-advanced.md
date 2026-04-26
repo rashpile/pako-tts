@@ -578,9 +578,9 @@ if (settings) body.voice_settings = settings;
 - Modify: `README.md`
 - Modify: `docs/todo/todo.md` (remove or strike-through completed items; or remove the file if empty)
 
-- [ ] add a short note to `README.md` mentioning the new `model_id` config field, the new `/api/v1/providers/{name}/models` endpoint, the optional `model_id` request field, and that the UI now exposes Model + Advanced controls
-- [ ] update `docs/todo/todo.md`: check off the completed items (or delete them if the file becomes empty). If the file ends up empty, leave it with just the `# TODO` header so future ideas have a home
-- [ ] move this plan to `docs/plans/completed/` (`mkdir -p docs/plans/completed && mv docs/plans/20260426-elevenlabs-models-and-ui-advanced.md docs/plans/completed/`)
+- [x] add a short note to `README.md` mentioning the new `model_id` config field, the new `/api/v1/providers/{name}/models` endpoint, the optional `model_id` request field, and that the UI now exposes Model + Advanced controls
+- [x] update `docs/todo/todo.md`: check off the completed items (or delete them if the file becomes empty). If the file ends up empty, leave it with just the `# TODO` header so future ideas have a home
+- [x] move this plan to `docs/plans/completed/` (`mkdir -p docs/plans/completed && mv docs/plans/20260426-elevenlabs-models-and-ui-advanced.md docs/plans/completed/`)
 
 ## Post-Completion
 
