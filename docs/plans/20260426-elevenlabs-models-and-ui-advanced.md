@@ -503,11 +503,11 @@ if (settings) body.voice_settings = settings;
 - Modify: `internal/api/routes.go`
 - Modify: `cmd/server/openapi.yaml`
 
-- [ ] add `ModelsListResponse` struct and `ListModels(w, r)` method to `internal/api/handlers/providers.go` per Technical Details (returns 503 via `ErrProviderUnavailable` on upstream failures, 404 via `ErrProviderNotFound` on unknown provider, normalizes nil to `[]Model{}`)
-- [ ] register `r.Get("/providers/{name}/models", providersHandler.ListModels)` inside the existing `r.Route("/api/v1", ...)` block in `internal/api/routes.go` (next to the existing voices route)
-- [ ] add `/api/v1/providers/{name}/models` path entry (200 / 404 / 503) to `cmd/server/openapi.yaml`, plus `Model` and `ModelsListResponse` schemas under `components.schemas`
-- [ ] add `TestProvidersHandler_ListModels` to `internal/api/handlers/providers_test.go` mirroring `TestProvidersHandler_ListVoices` (success returns models for known provider, unknown provider returns 404 `PROVIDER_NOT_FOUND`, provider error returns 503 `PROVIDER_UNAVAILABLE`, nil normalized to `[]`)
-- [ ] run `go test ./internal/api/handlers/...` — must pass before next task
+- [x] add `ModelsListResponse` struct and `ListModels(w, r)` method to `internal/api/handlers/providers.go` per Technical Details (returns 503 via `ErrProviderUnavailable` on upstream failures, 404 via `ErrProviderNotFound` on unknown provider, normalizes nil to `[]Model{}`)
+- [x] register `r.Get("/providers/{name}/models", providersHandler.ListModels)` inside the existing `r.Route("/api/v1", ...)` block in `internal/api/routes.go` (next to the existing voices route)
+- [x] add `/api/v1/providers/{name}/models` path entry (200 / 404 / 503) to `cmd/server/openapi.yaml`, plus `Model` and `ModelsListResponse` schemas under `components.schemas`
+- [x] add `TestProvidersHandler_ListModels` to `internal/api/handlers/providers_test.go` mirroring `TestProvidersHandler_ListVoices` (success returns models for known provider, unknown provider returns 404 `PROVIDER_NOT_FOUND`, provider error returns 503 `PROVIDER_UNAVAILABLE`, nil normalized to `[]`)
+- [x] run `go test ./internal/api/handlers/...` — must pass before next task
 
 ### Task 4: Plumb optional `model_id` through TTS request, Job, and worker
 

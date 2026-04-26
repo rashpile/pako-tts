@@ -103,6 +103,7 @@ func NewRouter(deps *RouterDeps) *chi.Mux {
 		// Providers
 		r.Get("/providers", providersHandler.ListProviders)
 		r.Get("/providers/{name}/voices", providersHandler.ListVoices)
+		r.Get("/providers/{name}/models", providersHandler.ListModels)
 
 		// Synchronous TTS
 		r.With(middleware.Timeout(deps.SyncTimeout)).Post("/tts", ttsHandler.SynthesizeTTS)
