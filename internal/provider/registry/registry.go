@@ -100,13 +100,22 @@ func (r *Registry) DefaultName() string {
 	return r.defaultName
 }
 
-// getProviderType returns the type for a provider name.
-// This is a simple implementation that relies on provider naming conventions.
+// providerWithType is implemented by providers that expose a stable type identifier
+// independent of their user-configured name (e.g. "ElevenLabsProvider").
+type providerWithType interface {
+	Type() string
+}
+
+// getProviderType returns the stable type identifier for a provider name.
+// Falls back to the provider's Name() if the underlying provider does not
+// implement Type() — keeps backward compatibility with third-party providers.
 func (r *Registry) getProviderType(name string) string {
-	// For now, we'll use the provider's Name() method as a fallback
-	// In a more complete implementation, we'd track the type separately
-	if provider, ok := r.providers[name]; ok {
-		return provider.Name()
+	provider, ok := r.providers[name]
+	if !ok {
+		return "unknown"
 	}
-	return "unknown"
+	if pt, ok := provider.(providerWithType); ok {
+		return pt.Type()
+	}
+	return provider.Name()
 }

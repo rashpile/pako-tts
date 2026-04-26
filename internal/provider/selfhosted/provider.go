@@ -77,6 +77,11 @@ func (p *Provider) Name() string {
 	return p.name
 }
 
+// Type returns the stable provider type identifier (independent of user-configured name).
+func (p *Provider) Type() string {
+	return providerType
+}
+
 // Synthesize converts text to speech.
 func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest) (*domain.SynthesisResult, error) {
 	atomic.AddInt32(&p.activeJobs, 1)

@@ -545,16 +545,18 @@ if (settings) body.voice_settings = settings;
 - Modify: `internal/ui/index.html`
 - Modify: `internal/ui/ui_test.go`
 
-- [ ] add Model `<label>` + `<select id="model-select">` to the form, after the Voice select (per Technical Details)
-- [ ] add collapsible `<details id="advanced-section" class="advanced"><summary>Advanced</summary><div id="advanced-controls"></div></details>` after the Format select
-- [ ] add the `.advanced` CSS rules (summary cursor, `.control-row` flex layout, range input flex sizing) to the existing `<style>` block
-- [ ] add the JS additions per Technical Details: `providerTypes` name→type map, `ADVANCED_SCHEMAS` keyed by provider **type** (`'ElevenLabsProvider'`) with defaults aligned to `domain.DefaultVoiceSettings()` (stability=0.0, similarity_boost=1.0, style=0.0, use_speaker_boost=true), `renderAdvanced(name)`, `collectVoiceSettings()`, `loadModels(name)`
-- [ ] update `loadProviders()` success path: in the `providers.forEach` populate `providerTypes[p.name] = p.type`; after the loop call `loadVoices(initialName)` AND `loadModels(initialName)` AND `renderAdvanced(initialName)` (alongside, not chained — they're independent fetches)
-- [ ] update the provider `change` listener to call `loadVoices(name)`, `loadModels(name)`, `renderAdvanced(name)` when name is set; otherwise clear voices, clear models, hide the advanced section
-- [ ] update `setFormDisabled(disabled, label)` to also disable `modelSelect` while a request is in flight
-- [ ] update form `submit` handler: include `body.model_id = modelID` when non-empty; include `body.voice_settings = collectVoiceSettings()` when truthy (i.e., when Advanced is open)
-- [ ] extend `internal/ui/ui_test.go` body-marker assertions to include `id="model-select"`, `id="advanced-section"`, `ADVANCED_SCHEMAS`, `'ElevenLabsProvider'` (so a future refactor that breaks the type-keyed map is caught), and the new endpoint path fragment `'/models'` using the same single-quote bracketing pattern as the existing `'/voices'` assertion
-- [ ] run `go test ./internal/ui/...` and `go test ./...` — must pass before next task
+- [x] add Model `<label>` + `<select id="model-select">` to the form, after the Voice select (per Technical Details)
+- [x] add collapsible `<details id="advanced-section" class="advanced"><summary>Advanced</summary><div id="advanced-controls"></div></details>` after the Format select
+- [x] add the `.advanced` CSS rules (summary cursor, `.control-row` flex layout, range input flex sizing) to the existing `<style>` block
+- [x] add the JS additions per Technical Details: `providerTypes` name→type map, `ADVANCED_SCHEMAS` keyed by provider **type** (`'ElevenLabsProvider'`) with defaults aligned to `domain.DefaultVoiceSettings()` (stability=0.0, similarity_boost=1.0, style=0.0, use_speaker_boost=true), `renderAdvanced(name)`, `collectVoiceSettings()`, `loadModels(name)`
+- [x] update `loadProviders()` success path: in the `providers.forEach` populate `providerTypes[p.name] = p.type`; after the loop call `loadVoices(initialName)` AND `loadModels(initialName)` AND `renderAdvanced(initialName)` (alongside, not chained — they're independent fetches)
+- [x] update the provider `change` listener to call `loadVoices(name)`, `loadModels(name)`, `renderAdvanced(name)` when name is set; otherwise clear voices, clear models, hide the advanced section
+- [x] update `setFormDisabled(disabled, label)` to also disable `modelSelect` while a request is in flight
+- [x] update form `submit` handler: include `body.model_id = modelID` when non-empty; include `body.voice_settings = collectVoiceSettings()` when truthy (i.e., when Advanced is open)
+- [x] extend `internal/ui/ui_test.go` body-marker assertions to include `id="model-select"`, `id="advanced-section"`, `ADVANCED_SCHEMAS`, `'ElevenLabsProvider'` (so a future refactor that breaks the type-keyed map is caught), and the new endpoint path fragment `'/models'` using the same single-quote bracketing pattern as the existing `'/voices'` assertion
+- [x] run `go test ./internal/ui/...` and `go test ./...` — must pass before next task
+
+> **Scope expansion (in-task fix):** Discovered during Task 5 that `Registry.getProviderType` returned `provider.Name()` instead of the stable `providerType` constant (e.g. "ElevenLabsProvider") that the OpenAPI spec already documents. The plan's type-keyed advanced controls depend on the API exposing the stable type. Fixed minimally: added a `Type() string` method to `elevenlabs.Provider` and `selfhosted.Provider` (returning their existing `providerType` constants) and updated `registry.go` to call it via a private `providerWithType` interface assertion (with a fallback to `Name()` for any third-party provider that doesn't implement it). No interface change to `domain.TTSProvider`; no test churn.
 
 ### Task 6: Verify acceptance criteria
 
