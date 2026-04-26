@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pako TTS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 640px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 24px;
+            color: #111;
+        }
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #555;
+        }
+        textarea,
+        select,
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            background: #fff;
+            font-family: inherit;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 96px;
+        }
+        button[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        button[type="submit"]:hover { background: #1d4ed8; }
+        button[type="submit"]:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+        .result-area {
+            display: none;
+        }
+        .result-area.visible {
+            display: block;
+        }
+        .result-area audio {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        .result-meta {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 12px;
+        }
+        .download-link {
+            display: inline-block;
+            padding: 8px 14px;
+            background: #f3f4f6;
+            color: #2563eb;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: 1px solid #e5e7eb;
+        }
+        .download-link:hover { background: #e5e7eb; }
+        .error-msg {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 8px;
+            display: none;
+        }
+        .error-msg.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pako TTS</h1>
+
+        <div class="card">
+            <form id="tts-form">
+                <label for="text-input">Text</label>
+                <textarea id="text-input" name="text" rows="5" required placeholder="Enter text to synthesize..."></textarea>
+
+                <label for="provider-select">Provider</label>
+                <select id="provider-select" name="provider">
+                    <option value="">Loading providers...</option>
+                </select>
+
+                <label for="voice-select">Voice</label>
+                <select id="voice-select" name="voice_id">
+                    <option value="">Default voice</option>
+                </select>
+
+                <label for="format-select">Output Format</label>
+                <select id="format-select" name="output_format">
+                    <option value="mp3">MP3</option>
+                    <option value="wav">WAV</option>
+                </select>
+
+                <button type="submit" id="submit-btn">Synthesize</button>
+            </form>
+            <div class="error-msg" id="error-msg"></div>
+        </div>
+
+        <div class="card result-area" id="result-area">
+            <label>Result</label>
+            <audio controls id="audio-player"></audio>
+            <div class="result-meta" id="result-meta"></div>
+            <a class="download-link" id="download-link" href="#" download>Download</a>
+        </div>
+    </div>
+
+    <script>
+        var form = document.getElementById('tts-form');
+        var textInput = document.getElementById('text-input');
+        var providerSelect = document.getElementById('provider-select');
+        var voiceSelect = document.getElementById('voice-select');
+        var formatSelect = document.getElementById('format-select');
+        var submitBtn = document.getElementById('submit-btn');
+        var resultArea = document.getElementById('result-area');
+        var audioPlayer = document.getElementById('audio-player');
+        var resultMeta = document.getElementById('result-meta');
+        var downloadLink = document.getElementById('download-link');
+        var errorMsg = document.getElementById('error-msg');
+
+        var lastObjectURL = null;
+        var voiceLoadToken = 0;
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.classList.add('visible');
+        }
+
+        function hideError() {
+            errorMsg.classList.remove('visible');
+        }
+
+        function setFormDisabled(disabled, label) {
+            textInput.disabled = disabled;
+            providerSelect.disabled = disabled;
+            voiceSelect.disabled = disabled;
+            formatSelect.disabled = disabled;
+            submitBtn.disabled = disabled;
+            submitBtn.textContent = label || 'Synthesize';
+        }
+
+        function resetVoices(message) {
+            voiceSelect.innerHTML = '';
+            var opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = message || 'Default voice';
+            voiceSelect.appendChild(opt);
+        }
+
+        function loadProviders() {
+            fetch('/api/v1/providers')
+                .then(function(res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(data) {
+                    providerSelect.innerHTML = '';
+                    var defaultName = data.default_provider || '';
+                    var providers = data.providers || [];
+                    if (providers.length === 0) {
+                        var opt = document.createElement('option');
+                        opt.value = '';
+                        opt.textContent = 'No providers available';
+                        providerSelect.appendChild(opt);
+                        resetVoices('Default voice');
+                        return;
+                    }
+                    providers.forEach(function(p) {
+                        var opt = document.createElement('option');
+                        opt.value = p.name;
+                        opt.textContent = p.name + (p.is_default ? ' (default)' : '');
+                        if (p.is_default || p.name === defaultName) opt.selected = true;
+                        providerSelect.appendChild(opt);
+                    });
+                    var initialName = providerSelect.value;
+                    if (initialName) loadVoices(initialName);
+                })
+                .catch(function(err) {
+                    providerSelect.innerHTML = '';
+                    var opt = document.createElement('option');
+                    opt.value = '';
+                    opt.textContent = 'Failed to load';
+                    providerSelect.appendChild(opt);
+                    resetVoices('Default voice');
+                    showError('Could not load providers: ' + err.message);
+                });
+        }
+
+        function loadVoices(name) {
+            hideError();
+            resetVoices('Loading voices...');
+            var token = ++voiceLoadToken;
+            fetch('/api/v1/providers/' + encodeURIComponent(name) + '/voices')
+                .then(function(res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function(data) {
+                    if (token !== voiceLoadToken) return;
+                    var voices = data.voices || [];
+                    voiceSelect.innerHTML = '';
+                    var defaultOpt = document.createElement('option');
+                    defaultOpt.value = '';
+                    defaultOpt.textContent = 'Default voice';
+                    voiceSelect.appendChild(defaultOpt);
+                    voices.forEach(function(v) {
+                        var opt = document.createElement('option');
+                        opt.value = v.voice_id;
+                        var label = v.name || v.voice_id;
+                        if (v.language) label += ' (' + v.language + ')';
+                        opt.textContent = label;
+                        voiceSelect.appendChild(opt);
+                    });
+                })
+                .catch(function(err) {
+                    if (token !== voiceLoadToken) return;
+                    resetVoices('Default voice');
+                    showError('Could not load voices for "' + name + '": ' + err.message + '. The server default voice will be used and may not be valid for this provider.');
+                });
+        }
+
+        providerSelect.addEventListener('change', function() {
+            var name = providerSelect.value;
+            if (name) loadVoices(name);
+            else resetVoices('Default voice');
+        });
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            hideError();
+            resultArea.classList.remove('visible');
+
+            var text = textInput.value.trim();
+            if (!text) {
+                showError('Please enter text to synthesize.');
+                return;
+            }
+
+            var body = { text: text };
+            var provider = providerSelect.value;
+            if (provider) body.provider = provider;
+            var voiceID = voiceSelect.value;
+            if (voiceID) body.voice_id = voiceID;
+            var outputFormat = formatSelect.value || 'mp3';
+            body.output_format = outputFormat;
+
+            setFormDisabled(true, 'Synthesizing…');
+
+            fetch('/api/v1/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+            .then(function(res) {
+                if (!res.ok) {
+                    return res.text().then(function(buf) {
+                        var msg = 'Synthesis failed (HTTP ' + res.status + ')';
+                        try {
+                            var parsed = JSON.parse(buf);
+                            if (parsed && parsed.error && parsed.error.message) {
+                                msg = parsed.error.message;
+                            } else if (parsed && parsed.detail) {
+                                msg = typeof parsed.detail === 'string' ? parsed.detail : JSON.stringify(parsed.detail);
+                            }
+                        } catch (err) {
+                            // not JSON; keep generic message
+                        }
+                        throw new Error(msg);
+                    });
+                }
+                var contentType = res.headers.get('content-type') || '';
+                return res.blob().then(function(blob) {
+                    return { blob: blob, contentType: contentType };
+                });
+            })
+            .then(function(result) {
+                if (lastObjectURL) {
+                    URL.revokeObjectURL(lastObjectURL);
+                    lastObjectURL = null;
+                }
+                var url = URL.createObjectURL(result.blob);
+                lastObjectURL = url;
+                audioPlayer.src = url;
+                var ts = new Date().toISOString().replace(/[:.]/g, '-');
+                var ext = outputFormat;
+                if (result.contentType.indexOf('audio/mpeg') !== -1) ext = 'mp3';
+                else if (result.contentType.indexOf('audio/wav') !== -1 || result.contentType.indexOf('audio/x-wav') !== -1) ext = 'wav';
+                downloadLink.href = url;
+                downloadLink.download = 'tts-' + ts + '.' + ext;
+                var sizeKB = (result.blob.size / 1024).toFixed(1);
+                resultMeta.textContent = ext.toUpperCase() + ' • ' + sizeKB + ' KB • ' + (result.contentType || 'audio');
+                resultArea.classList.add('visible');
+                setFormDisabled(false);
+            })
+            .catch(function(err) {
+                showError(err.message || 'Synthesis error');
+                setFormDisabled(false);
+            });
+        });
+
+        loadProviders();
+    </script>
+</body>
+</html>
