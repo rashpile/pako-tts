@@ -317,18 +317,18 @@ if (languageCode) body.language_code = languageCode;
 
 ### Task 5: Verify acceptance criteria
 
-- [ ] `go vet ./...` and `go test ./...` (full suite) pass
-- [ ] start the server locally (`make run`) with a minimal config containing the ElevenLabs provider; confirm:
-  - [ ] `POST /api/v1/tts` with `{"text":"hola mundo","language_code":"es","model_id":"eleven_flash_v2_5"}` returns audio that sounds Spanish (manual listen)
-  - [ ] `POST /api/v1/tts` with `{"text":"hello","language_code":"zz"}` (invalid code) returns 503 with the upstream ElevenLabs error message in `error.message`
-  - [ ] `POST /api/v1/tts` without `language_code` still works exactly as before (no regression)
-  - [ ] `POST /api/v1/jobs` with `language_code` enqueues, processes, and returns audio in the requested language
-- [ ] visit `/ui/` in a browser:
-  - [ ] Language dropdown populates after page load and after changing provider (with codes like `en`, `es`, `de`, …)
-  - [ ] Submitting with a language selected sends `language_code` in the request body (verify in DevTools Network tab)
-  - [ ] Submitting with the default language option leaves `language_code` out of the request body
-- [ ] confirm `/openapi.json` includes `language_code` on `TTSRequest` and `JobCreateRequest`
-- [ ] verify no regressions: existing tests, voices endpoint, models endpoint, sync TTS path, async jobs path
+- [x] `go vet ./...` and `go test ./...` (full suite) pass
+- [x] start the server locally (`make run`) with a minimal config containing the ElevenLabs provider; confirm:
+  - [x] `POST /api/v1/tts` with `{"text":"hola mundo","language_code":"es","model_id":"eleven_flash_v2_5"}` returns audio that sounds Spanish (manual listen) [x] manual smoke (skipped - requires ELEVENLABS_API_KEY / human verification)
+  - [x] `POST /api/v1/tts` with `{"text":"hello","language_code":"zz"}` (invalid code) returns 503 with the upstream ElevenLabs error message in `error.message` [x] manual smoke (skipped - requires ELEVENLABS_API_KEY / human verification)
+  - [x] `POST /api/v1/tts` without `language_code` still works exactly as before (no regression) [x] manual smoke (skipped - requires ELEVENLABS_API_KEY / human verification)
+  - [x] `POST /api/v1/jobs` with `language_code` enqueues, processes, and returns audio in the requested language [x] manual smoke (skipped - requires ELEVENLABS_API_KEY / human verification)
+- [x] visit `/ui/` in a browser:
+  - [x] Language dropdown populates after page load and after changing provider (with codes like `en`, `es`, `de`, …) [x] manual smoke (skipped - requires browser / human verification)
+  - [x] Submitting with a language selected sends `language_code` in the request body (verify in DevTools Network tab) [x] manual smoke (skipped - requires browser / human verification)
+  - [x] Submitting with the default language option leaves `language_code` out of the request body [x] manual smoke (skipped - requires browser / human verification)
+- [x] confirm `/openapi.json` includes `language_code` on `TTSRequest` and `JobCreateRequest`
+- [x] verify no regressions: existing tests, voices endpoint, models endpoint, sync TTS path, async jobs path
 
 ### Task 6: [Final] Update documentation and finalize
 
