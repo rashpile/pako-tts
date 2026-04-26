@@ -101,6 +101,55 @@ func TestProvider_Synthesize_HonorsExplicitModelID(t *testing.T) {
 	}
 }
 
+func TestProvider_Synthesize_IgnoresLanguageCode(t *testing.T) {
+	var rawBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/tts":
+			b, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("read tts body: %v", err)
+			}
+			rawBody = b
+			w.Header().Set("Content-Type", "audio/wav")
+			_, _ = w.Write([]byte("audio"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	p, err := NewProviderFromConfig(config.ProviderConfig{
+		Name:    "local",
+		BaseURL: srv.URL,
+	}, true)
+	if err != nil {
+		t.Fatalf("NewProviderFromConfig: %v", err)
+	}
+
+	req := &domain.SynthesisRequest{
+		Text:         "hi",
+		VoiceID:      "short-voice",
+		LanguageCode: "en",
+	}
+	if _, err := p.Synthesize(context.Background(), req); err != nil {
+		t.Fatalf("Synthesize: %v", err)
+	}
+
+	// Capture the raw outbound bytes and assert the language_code key is
+	// absent. Decoding into selfhosted.SynthesisRequest would silently drop
+	// the field (struct has no LanguageCode), so this raw-bytes check is the
+	// only signal that catches a future regression where the field gets
+	// accidentally forwarded.
+	var asMap map[string]any
+	if err := json.Unmarshal(rawBody, &asMap); err != nil {
+		t.Fatalf("decode raw body: %v", err)
+	}
+	if _, ok := asMap["language_code"]; ok {
+		t.Errorf("selfhosted upstream body unexpectedly contains language_code: %s", string(rawBody))
+	}
+}
+
 func TestProvider_ListVoices_StillWorksAfterListModelsAdded(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/v1/models" {

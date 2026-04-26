@@ -296,9 +296,9 @@ if (languageCode) body.language_code = languageCode;
 - Modify: `internal/provider/selfhosted/provider.go` (add doc comment near `Synthesize`)
 - Modify: `internal/provider/selfhosted/provider_test.go` (assert `req.LanguageCode` is not forwarded)
 
-- [ ] add a comment in `selfhosted.Provider.Synthesize` near the existing model-id resolution switch noting that `req.LanguageCode` is intentionally ignored — the local TTS API has no comparable parameter
-- [ ] add a test in `provider_test.go` that calls `Synthesize` with `req.LanguageCode = "en"` and asserts `language_code` is absent from the upstream request body. **Important**: do NOT decode into the local `selfhosted.SynthesisRequest` struct (it has no `LanguageCode` field, so a JSON decode would silently drop the key and the assertion would be vacuous). Instead, capture the raw body bytes and assert with `bytes.Contains(rawBody, []byte("language_code"))` (must be `false`), or unmarshal into `map[string]any` and check `_, ok := m["language_code"]; !ok`. This catches a future regression where the field gets accidentally forwarded.
-- [ ] run `go test ./internal/provider/selfhosted/...` — must pass before next task
+- [x] add a comment in `selfhosted.Provider.Synthesize` near the existing model-id resolution switch noting that `req.LanguageCode` is intentionally ignored — the local TTS API has no comparable parameter
+- [x] add a test in `provider_test.go` that calls `Synthesize` with `req.LanguageCode = "en"` and asserts `language_code` is absent from the upstream request body. **Important**: do NOT decode into the local `selfhosted.SynthesisRequest` struct (it has no `LanguageCode` field, so a JSON decode would silently drop the key and the assertion would be vacuous). Instead, capture the raw body bytes and assert with `bytes.Contains(rawBody, []byte("language_code"))` (must be `false`), or unmarshal into `map[string]any` and check `_, ok := m["language_code"]; !ok`. This catches a future regression where the field gets accidentally forwarded.
+- [x] run `go test ./internal/provider/selfhosted/...` — must pass before next task
 
 ### Task 4: UI — Language `<select>` populated from union of model languages
 
