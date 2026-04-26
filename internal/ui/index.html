@@ -104,6 +104,34 @@
         .error-msg.visible {
             display: block;
         }
+        .advanced summary {
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #555;
+            margin-top: 8px;
+            margin-bottom: 12px;
+        }
+        .advanced .control-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .advanced .control-row label {
+            margin-bottom: 0;
+            min-width: 120px;
+            flex-shrink: 0;
+        }
+        .advanced .control-row input[type=range] {
+            flex: 1;
+        }
+        .advanced .control-row span {
+            font-variant-numeric: tabular-nums;
+            font-size: 0.875rem;
+            color: #666;
+            min-width: 36px;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -125,11 +153,21 @@
                     <option value="">Default voice</option>
                 </select>
 
+                <label for="model-select">Model</label>
+                <select id="model-select" name="model_id">
+                    <option value="">Default model</option>
+                </select>
+
                 <label for="format-select">Output Format</label>
                 <select id="format-select" name="output_format">
                     <option value="mp3">MP3</option>
                     <option value="wav">WAV</option>
                 </select>
+
+                <details id="advanced-section" class="advanced">
+                    <summary>Advanced</summary>
+                    <div id="advanced-controls"></div>
+                </details>
 
                 <button type="submit" id="submit-btn">Synthesize</button>
             </form>
@@ -149,7 +187,10 @@
         var textInput = document.getElementById('text-input');
         var providerSelect = document.getElementById('provider-select');
         var voiceSelect = document.getElementById('voice-select');
+        var modelSelect = document.getElementById('model-select');
         var formatSelect = document.getElementById('format-select');
+        var advancedSection = document.getElementById('advanced-section');
+        var advancedControls = document.getElementById('advanced-controls');
         var submitBtn = document.getElementById('submit-btn');
         var resultArea = document.getElementById('result-area');
         var audioPlayer = document.getElementById('audio-player');
@@ -159,6 +200,27 @@
 
         var lastObjectURL = null;
         var voiceLoadToken = 0;
+        var modelLoadToken = 0;
+
+        // Maps provider name -> provider type (populated from GET /api/v1/providers).
+        // Keying advanced controls by *type* (not name) lets users rename their provider
+        // in config.yaml without losing the UI controls.
+        var providerTypes = {};
+
+        // Type-keyed advanced control schemas. Add entries when new provider types gain controls.
+        // The defaults shown in the UI are display-only — collectVoiceSettings() only emits
+        // keys for controls the user actually interacts with, so opening Advanced and
+        // submitting without changes is a real no-op (no voice_settings on the wire),
+        // matching the closed-section behavior. ElevenLabs then uses each voice's stored
+        // library defaults instead of these UI placeholders.
+        var ADVANCED_SCHEMAS = {
+            'ElevenLabsProvider': [
+                { key: 'stability',         label: 'Stability',         type: 'range', min: 0, max: 1, step: 0.05, default: 0.0 },
+                { key: 'similarity_boost',  label: 'Similarity boost',  type: 'range', min: 0, max: 1, step: 0.05, default: 1.0 },
+                { key: 'style',             label: 'Style',             type: 'range', min: 0, max: 1, step: 0.05, default: 0.0 },
+                { key: 'use_speaker_boost', label: 'Speaker boost',     type: 'checkbox',                          default: true }
+            ]
+        };
 
         function showError(msg) {
             errorMsg.textContent = msg;
@@ -173,6 +235,7 @@
             textInput.disabled = disabled;
             providerSelect.disabled = disabled;
             voiceSelect.disabled = disabled;
+            modelSelect.disabled = disabled;
             formatSelect.disabled = disabled;
             submitBtn.disabled = disabled;
             submitBtn.textContent = label || 'Synthesize';
@@ -184,6 +247,115 @@
             opt.value = '';
             opt.textContent = message || 'Default voice';
             voiceSelect.appendChild(opt);
+        }
+
+        function resetModels(message) {
+            modelSelect.innerHTML = '';
+            var opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = message || 'Default model';
+            modelSelect.appendChild(opt);
+        }
+
+        function renderAdvanced(name) {
+            advancedControls.innerHTML = '';
+            var schema = ADVANCED_SCHEMAS[providerTypes[name]];
+            if (!schema) {
+                advancedSection.style.display = 'none';
+                return;
+            }
+            advancedSection.style.display = '';
+            schema.forEach(function (ctrl) {
+                var row = document.createElement('div');
+                row.className = 'control-row';
+
+                var label = document.createElement('label');
+                label.htmlFor = 'adv-' + ctrl.key;
+                label.textContent = ctrl.label;
+                row.appendChild(label);
+
+                var input = document.createElement('input');
+                input.id = 'adv-' + ctrl.key;
+                input.dataset.key = ctrl.key;
+                input.dataset.kind = ctrl.type;
+                input.dataset.touched = 'false';
+                if (ctrl.type === 'range') {
+                    input.type = 'range';
+                    input.min = ctrl.min;
+                    input.max = ctrl.max;
+                    input.step = ctrl.step;
+                    input.value = ctrl.default;
+                    var valSpan = document.createElement('span');
+                    valSpan.textContent = String(ctrl.default);
+                    input.addEventListener('input', function () {
+                        valSpan.textContent = input.value;
+                        input.dataset.touched = 'true';
+                    });
+                    row.appendChild(input);
+                    row.appendChild(valSpan);
+                } else if (ctrl.type === 'checkbox') {
+                    input.type = 'checkbox';
+                    input.checked = !!ctrl.default;
+                    input.addEventListener('change', function () {
+                        input.dataset.touched = 'true';
+                    });
+                    row.appendChild(input);
+                }
+                advancedControls.appendChild(row);
+            });
+        }
+
+        function collectVoiceSettings() {
+            // Only emit keys the user actually changed, so opening Advanced and submitting
+            // untouched is identical to leaving Advanced closed (no voice_settings sent;
+            // the provider then uses each voice's stored library defaults).
+            if (!advancedSection.open) return null;
+            var inputs = advancedControls.querySelectorAll('input[data-key]');
+            if (inputs.length === 0) return null;
+            var out = {};
+            var any = false;
+            for (var i = 0; i < inputs.length; i++) {
+                var el = inputs[i];
+                if (el.dataset.touched !== 'true') continue;
+                if (el.dataset.kind === 'range') {
+                    out[el.dataset.key] = parseFloat(el.value);
+                    any = true;
+                } else if (el.dataset.kind === 'checkbox') {
+                    out[el.dataset.key] = el.checked;
+                    any = true;
+                }
+            }
+            return any ? out : null;
+        }
+
+        function loadModels(name) {
+            resetModels('Loading models...');
+            var token = ++modelLoadToken;
+            fetch('/api/v1/providers/' + encodeURIComponent(name) + '/models')
+                .then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.json();
+                })
+                .then(function (data) {
+                    if (token !== modelLoadToken) return;
+                    var models = data.models || [];
+                    modelSelect.innerHTML = '';
+                    var def = document.createElement('option');
+                    def.value = '';
+                    def.textContent = 'Default model';
+                    modelSelect.appendChild(def);
+                    models.forEach(function (m) {
+                        var opt = document.createElement('option');
+                        opt.value = m.model_id;
+                        opt.textContent = m.name || m.model_id;
+                        modelSelect.appendChild(opt);
+                    });
+                })
+                .catch(function () {
+                    if (token !== modelLoadToken) return;
+                    // Best-effort: model list is optional — fall back to "Default model".
+                    resetModels('Default model');
+                });
         }
 
         function loadProviders() {
@@ -210,9 +382,14 @@
                         opt.textContent = p.name + (p.is_default ? ' (default)' : '');
                         if (p.is_default || p.name === defaultName) opt.selected = true;
                         providerSelect.appendChild(opt);
+                        providerTypes[p.name] = p.type;
                     });
                     var initialName = providerSelect.value;
-                    if (initialName) loadVoices(initialName);
+                    if (initialName) {
+                        loadVoices(initialName);
+                        loadModels(initialName);
+                        renderAdvanced(initialName);
+                    }
                 })
                 .catch(function(err) {
                     providerSelect.innerHTML = '';
@@ -260,8 +437,15 @@
 
         providerSelect.addEventListener('change', function() {
             var name = providerSelect.value;
-            if (name) loadVoices(name);
-            else resetVoices('Default voice');
+            if (name) {
+                loadVoices(name);
+                loadModels(name);
+                renderAdvanced(name);
+            } else {
+                resetVoices('Default voice');
+                resetModels('Default model');
+                advancedSection.style.display = 'none';
+            }
         });
 
         form.addEventListener('submit', function(e) {
@@ -280,8 +464,12 @@
             if (provider) body.provider = provider;
             var voiceID = voiceSelect.value;
             if (voiceID) body.voice_id = voiceID;
+            var modelID = modelSelect.value;
+            if (modelID) body.model_id = modelID;
             var outputFormat = formatSelect.value || 'mp3';
             body.output_format = outputFormat;
+            var voiceSettings = collectVoiceSettings();
+            if (voiceSettings) body.voice_settings = voiceSettings;
 
             setFormDisabled(true, 'Synthesizing…');
 

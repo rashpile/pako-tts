@@ -12,23 +12,26 @@ import (
 )
 
 const (
-	providerName  = "elevenlabs"
-	providerType  = "ElevenLabsProvider"
-	maxConcurrent = 4
+	providerName     = "elevenlabs"
+	providerType     = "ElevenLabsProvider"
+	maxConcurrent    = 4
+	fallbackModelID  = "eleven_multilingual_v2"
 )
 
 // Provider implements the TTSProvider interface for ElevenLabs.
 type Provider struct {
-	client     *Client
-	activeJobs int32
-	isDefault  bool
+	client         *Client
+	activeJobs     int32
+	isDefault      bool
+	defaultModelID string
 }
 
 // NewProvider creates a new ElevenLabs provider.
 func NewProvider(apiKey string, isDefault bool) *Provider {
 	return &Provider{
-		client:    NewClient(apiKey),
-		isDefault: isDefault,
+		client:         NewClient(apiKey),
+		isDefault:      isDefault,
+		defaultModelID: fallbackModelID,
 	}
 }
 
@@ -38,15 +41,26 @@ func NewProviderFromConfig(cfg config.ProviderConfig, isDefault bool) (*Provider
 		return nil, fmt.Errorf("elevenlabs provider requires api_key")
 	}
 
+	modelID := cfg.ModelID
+	if modelID == "" {
+		modelID = fallbackModelID
+	}
+
 	return &Provider{
-		client:    NewClient(cfg.APIKey),
-		isDefault: isDefault,
+		client:         NewClient(cfg.APIKey),
+		isDefault:      isDefault,
+		defaultModelID: modelID,
 	}, nil
 }
 
 // Name returns the provider identifier.
 func (p *Provider) Name() string {
 	return providerName
+}
+
+// Type returns the stable provider type identifier (independent of user-configured name).
+func (p *Provider) Type() string {
+	return providerType
 }
 
 // Synthesize converts text to speech.
@@ -57,6 +71,13 @@ func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest)
 	// Build ElevenLabs request
 	ttsReq := &TTSRequest{
 		Text: req.Text,
+	}
+
+	// Resolve model id: explicit request value wins; otherwise fall back to provider default.
+	if req.ModelID != "" {
+		ttsReq.ModelID = req.ModelID
+	} else {
+		ttsReq.ModelID = p.defaultModelID
 	}
 
 	// Set output format
@@ -125,6 +146,35 @@ func (p *Provider) ListVoices(ctx context.Context) ([]domain.Voice, error) {
 	}
 
 	return voices, nil
+}
+
+// ListModels returns available text-to-speech models for ElevenLabs.
+func (p *Provider) ListModels(ctx context.Context) ([]domain.Model, error) {
+	resp, err := p.client.GetModels(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	models := make([]domain.Model, 0, len(resp))
+	for _, m := range resp {
+		if !m.CanDoTextToSpeech {
+			continue
+		}
+		langs := make([]string, 0, len(m.Languages))
+		for _, l := range m.Languages {
+			if l.LanguageID != "" {
+				langs = append(langs, l.LanguageID)
+			}
+		}
+		models = append(models, domain.Model{
+			ModelID:     m.ModelID,
+			Name:        m.Name,
+			Provider:    providerName,
+			Description: m.Description,
+			Languages:   langs,
+		})
+	}
+	return models, nil
 }
 
 // IsAvailable checks if the provider is available.

@@ -33,6 +33,7 @@ type ProviderConfig struct {
 	MaxConcurrent  int           `mapstructure:"max_concurrent"`
 	Timeout        time.Duration `mapstructure:"timeout"`
 	APIKey         string        `mapstructure:"api_key"`          // For elevenlabs
+	ModelID        string        `mapstructure:"model_id"`         // For elevenlabs (default model)
 	BaseURL        string        `mapstructure:"base_url"`         // For selfhosted
 	TTSEndpoint    string        `mapstructure:"tts_endpoint"`     // For selfhosted
 	VoicesEndpoint string        `mapstructure:"voices_endpoint"`  // For selfhosted
@@ -220,6 +221,7 @@ func loadProvidersConfig(v *viper.Viper, cfg *Config) error {
 			MaxConcurrent:  getInt(providerMap, "max_concurrent", 4),
 			Timeout:        getDuration(providerMap, "timeout", 30*time.Second),
 			APIKey:         expandEnvVars(getString(providerMap, "api_key")),
+			ModelID:        expandEnvVars(getString(providerMap, "model_id")),
 			BaseURL:        getString(providerMap, "base_url"),
 			TTSEndpoint:    getString(providerMap, "tts_endpoint"),
 			VoicesEndpoint: getString(providerMap, "voices_endpoint"),

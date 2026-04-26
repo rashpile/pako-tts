@@ -71,3 +71,33 @@ func (h *ProvidersHandler) ListVoices(w http.ResponseWriter, r *http.Request) {
 
 	middleware.WriteJSON(w, http.StatusOK, VoicesListResponse{Provider: name, Voices: voices})
 }
+
+// ModelsListResponse represents the models list response for a provider.
+type ModelsListResponse struct {
+	Provider string         `json:"provider"`
+	Models   []domain.Model `json:"models"`
+}
+
+// ListModels handles GET /api/v1/providers/{name}/models.
+func (h *ProvidersHandler) ListModels(w http.ResponseWriter, r *http.Request) {
+	name := chi.URLParam(r, "name")
+
+	provider, err := h.registry.Get(name)
+	if err != nil {
+		middleware.WriteError(w, domain.ErrProviderNotFound.WithMessage("Provider '"+name+"' not found"))
+		return
+	}
+
+	models, err := provider.ListModels(r.Context())
+	if err != nil {
+		h.logger.Error("ListModels failed", zap.String("provider", name), zap.Error(err))
+		middleware.WriteError(w, domain.ErrProviderUnavailable.WithMessage(err.Error()))
+		return
+	}
+
+	if models == nil {
+		models = []domain.Model{}
+	}
+
+	middleware.WriteJSON(w, http.StatusOK, ModelsListResponse{Provider: name, Models: models})
+}

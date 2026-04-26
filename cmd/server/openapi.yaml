@@ -350,6 +350,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/providers/{name}/models:
+    get:
+      tags:
+        - Providers
+      summary: List Models for Provider
+      description: Returns models available for the named provider.
+      operationId: listProviderModels
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Provider identifier
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Model list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelsListResponse"
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Provider unavailable (upstream call failed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     TTSRequest:
@@ -364,6 +398,9 @@ components:
         voice_id:
           type: string
           description: Voice identifier (uses default if not specified)
+        model_id:
+          type: string
+          description: Provider-specific model id; uses provider's configured default when omitted
         output_format:
           type: string
           enum: [mp3, wav]
@@ -383,6 +420,9 @@ components:
         voice_id:
           type: string
           description: Voice identifier (uses default if not specified)
+        model_id:
+          type: string
+          description: Provider-specific model id; uses provider's configured default when omitted
         provider:
           type: string
           description: Provider name (uses default if not specified)
@@ -622,6 +662,45 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Voice"
+
+    Model:
+      type: object
+      required:
+        - model_id
+        - name
+        - provider
+      properties:
+        model_id:
+          type: string
+          description: Provider-specific model identifier (e.g. "eleven_multilingual_v2")
+        name:
+          type: string
+          description: Human-readable model name
+        provider:
+          type: string
+          description: Provider identifier this model belongs to
+        description:
+          type: string
+          description: Provider-supplied model description
+        languages:
+          type: array
+          description: Language codes the model supports
+          items:
+            type: string
+
+    ModelsListResponse:
+      type: object
+      required:
+        - provider
+        - models
+      properties:
+        provider:
+          type: string
+          description: Provider identifier
+        models:
+          type: array
+          items:
+            $ref: "#/components/schemas/Model"
 
     ErrorResponse:
       type: object

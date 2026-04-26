@@ -45,6 +45,7 @@ func NewJobsHandler(
 type JobCreateRequest struct {
 	Text          string                `json:"text"`
 	VoiceID       string                `json:"voice_id,omitempty"`
+	ModelID       string                `json:"model_id,omitempty"`
 	Provider      string                `json:"provider,omitempty"`
 	OutputFormat  string                `json:"output_format,omitempty"`
 	VoiceSettings *domain.VoiceSettings `json:"voice_settings,omitempty"`
@@ -118,7 +119,7 @@ func (h *JobsHandler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create job
-	job := domain.NewJob(req.Text, voiceID, providerName, outputFormat, req.VoiceSettings)
+	job := domain.NewJob(req.Text, voiceID, req.ModelID, providerName, outputFormat, req.VoiceSettings)
 
 	// Enqueue job
 	if err := h.queue.Enqueue(ctx, job); err != nil {

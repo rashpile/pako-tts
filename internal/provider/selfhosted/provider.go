@@ -77,20 +77,28 @@ func (p *Provider) Name() string {
 	return p.name
 }
 
+// Type returns the stable provider type identifier (independent of user-configured name).
+func (p *Provider) Type() string {
+	return providerType
+}
+
 // Synthesize converts text to speech.
 func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest) (*domain.SynthesisResult, error) {
 	atomic.AddInt32(&p.activeJobs, 1)
 	defer atomic.AddInt32(&p.activeJobs, -1)
 
-	// Build selfhosted TTS request
-	// Map voice_id to model_id (only if explicitly provided, not a default)
+	// Build selfhosted TTS request.
 	ttsReq := &SynthesisRequest{
 		Text: req.Text,
 	}
 
-	// Only set model_id if voice_id looks like a local model (not an ElevenLabs ID)
-	// ElevenLabs IDs are 20+ chars, local models are typically shorter descriptive names
-	if req.VoiceID != "" && len(req.VoiceID) < 20 {
+	// Resolve model id: explicit req.ModelID wins. Otherwise fall back to the
+	// legacy heuristic that treats a short voice_id as a local model name
+	// (ElevenLabs IDs are 20+ chars; local models are typically shorter).
+	switch {
+	case req.ModelID != "":
+		ttsReq.ModelID = req.ModelID
+	case req.VoiceID != "" && len(req.VoiceID) < 20:
 		ttsReq.ModelID = req.VoiceID
 	}
 
@@ -155,6 +163,19 @@ func (p *Provider) ListVoices(ctx context.Context) ([]domain.Voice, error) {
 	}
 
 	return voices, nil
+}
+
+// ListModels returns available models for selfhosted.
+//
+// Selfhosted's upstream `voices_endpoint` defaults to `/api/v1/models`, so
+// `ListVoices` already returns the upstream model list. Returning the same
+// items here would duplicate the dropdowns in the UI and produce confusing
+// `voice_id == model_id` request bodies. Returning (nil, nil) is intentional —
+// the handler normalizes nil to `[]`, and the UI's Model dropdown then shows
+// only "Default model", which is the correct UX for selfhosted (no separate
+// model concept distinct from voices).
+func (p *Provider) ListModels(ctx context.Context) ([]domain.Model, error) {
+	return nil, nil
 }
 
 // IsAvailable checks if the provider is available.

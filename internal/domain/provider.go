@@ -19,6 +19,10 @@ type TTSProvider interface {
 	// ListVoices returns available voices for this provider.
 	ListVoices(ctx context.Context) ([]Voice, error)
 
+	// ListModels returns available models for this provider.
+	// Providers that have no concept of a model distinct from a voice may return (nil, nil).
+	ListModels(ctx context.Context) ([]Model, error)
+
 	// IsAvailable checks if the provider is currently available.
 	IsAvailable(ctx context.Context) bool
 
@@ -36,6 +40,7 @@ type TTSProvider interface {
 type SynthesisRequest struct {
 	Text         string
 	VoiceID      string
+	ModelID      string // optional; provider falls back to its configured default when empty
 	OutputFormat string // "mp3" or "wav"
 	Settings     *VoiceSettings
 }

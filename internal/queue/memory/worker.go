@@ -120,6 +120,7 @@ func (w *Worker) processJob(ctx context.Context, job *domain.Job, logger *zap.Lo
 	req := &domain.SynthesisRequest{
 		Text:         job.Text,
 		VoiceID:      job.VoiceID,
+		ModelID:      job.ModelID,
 		OutputFormat: job.OutputFormat,
 		Settings:     job.VoiceSettings,
 	}

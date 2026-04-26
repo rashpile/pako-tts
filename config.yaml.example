@@ -19,6 +19,7 @@ providers:
       api_key: "${ELEVENLABS_API_KEY}"  # Use environment variable
       max_concurrent: 4
       timeout: 30s
+      # model_id: "eleven_multilingual_v2"  # optional; ElevenLabs model id used when request omits model_id
 
     # Self-hosted TTS provider configuration (uncomment to enable)
     # - name: "local-tts"

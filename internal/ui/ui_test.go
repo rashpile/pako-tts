@@ -50,10 +50,15 @@ func TestHandler_ServeHTTP(t *testing.T) {
 		"<title>Pako TTS</title>",
 		`id="provider-select"`,
 		`id="voice-select"`,
+		`id="model-select"`,
 		`id="format-select"`,
+		`id="advanced-section"`,
+		"ADVANCED_SCHEMAS",
+		"'ElevenLabsProvider'",
 		"/api/v1/tts",
 		"'/api/v1/providers'",
 		"'/voices'",
+		"'/models'",
 	}
 
 	for _, marker := range wantMarkers {

@@ -11,7 +11,18 @@ For the underlying ElevenLabs research notes (model schema, parameters not yet e
 | `ELEVENLABS_API_KEY` | — | yes | Your ElevenLabs API key |
 | `DEFAULT_VOICE_ID` | `pNInz6obpgDQGcFmaJgB` | no | Used when a request omits `voice_id` |
 
-Model selection is **not** configurable today — every request uses `eleven_multilingual_v2`. (Tracked as a TODO in [`todo.md`](todo.md).)
+The default model is configurable in `config.yaml` under the elevenlabs provider entry:
+
+```yaml
+providers:
+  list:
+    - name: "elevenlabs"
+      type: "elevenlabs"
+      api_key: "${ELEVENLABS_API_KEY}"
+      model_id: "eleven_multilingual_v2"  # optional; default when blank
+```
+
+If `model_id` is omitted, the server falls back to `eleven_multilingual_v2`. Per-request `model_id` (see below) overrides the default.
 
 ## Listing voices
 
@@ -39,6 +50,31 @@ Response:
 
 Use any returned `voice_id` in subsequent TTS requests.
 
+## Listing models
+
+```bash
+curl http://localhost:8080/api/v1/providers/elevenlabs/models
+```
+
+Response:
+
+```json
+{
+  "provider": "elevenlabs",
+  "models": [
+    {
+      "model_id": "eleven_multilingual_v2",
+      "name": "Eleven Multilingual v2",
+      "provider": "elevenlabs",
+      "description": "...",
+      "languages": ["en", "es", "fr"]
+    }
+  ]
+}
+```
+
+Use any returned `model_id` in the `model_id` field of `/tts` or `/jobs` requests.
+
 ## Synthesis request shape
 
 Both `POST /api/v1/tts` (sync) and `POST /api/v1/jobs` (async) accept the same body:
@@ -47,6 +83,7 @@ Both `POST /api/v1/tts` (sync) and `POST /api/v1/jobs` (async) accept the same b
 {
   "text": "Hello world",
   "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2",
   "provider": "elevenlabs",
   "output_format": "mp3",
   "voice_settings": {
@@ -62,6 +99,7 @@ Both `POST /api/v1/tts` (sync) and `POST /api/v1/jobs` (async) accept the same b
 |---|---|---|---|
 | `text` | string | — | Required. Sync endpoint enforces `MAX_SYNC_TEXT_LENGTH` (5000 chars). Async has no length limit. |
 | `voice_id` | string | server `DEFAULT_VOICE_ID` | Optional. Get IDs from `/api/v1/providers/elevenlabs/voices`. |
+| `model_id` | string | provider's configured default | Optional. Get IDs from `/api/v1/providers/elevenlabs/models`. Falls back to the `model_id` in `config.yaml` (or `eleven_multilingual_v2`) when omitted. |
 | `provider` | string | server default provider | Optional. Use `"elevenlabs"` to force this provider. |
 | `output_format` | string | `mp3` | One of `mp3` or `wav`. See limits below. |
 | `voice_settings` | object | server defaults | Optional. See [Voice settings](#voice-settings) below. |
@@ -178,7 +216,6 @@ curl http://localhost:8080/api/v1/jobs/$JOB_ID/result --output article.mp3
 These are accepted-by-the-API but **silently dropped** before reaching ElevenLabs, or not currently supported. Track in [`todo.md`](todo.md).
 
 - **`voice_settings.speed`** — accepted in the request but **never sent** to ElevenLabs (mapping bug). Setting it has no effect today.
-- **`model_id`** — not configurable; hardcoded to `eleven_multilingual_v2`.
 - **`language_code`** — not exposed. ElevenLabs supports it for some models (Turbo/Flash/v3); when added, it will let you force a specific language for normalization.
 - **`seed`** — not exposed. Would enable deterministic output for reproducible runs.
 - **`previous_text` / `next_text`** — not exposed. Would help prosody continuity when stitching together long text in chunks.
@@ -188,7 +225,7 @@ These are accepted-by-the-API but **silently dropped** before reaching ElevenLab
 
 ## Tips
 
-- The browser UI at [`/ui/`](http://localhost:8080/ui/) is the fastest way to try voices and hear what `style` / `stability` actually sound like — but it doesn't yet expose voice-settings sliders. Use curl for that.
+- The browser UI at [`/ui/`](http://localhost:8080/ui/) is the fastest way to try voices and hear what `style` / `stability` actually sound like. It exposes a Model dropdown and a collapsible **Advanced** section with `stability`, `similarity_boost`, `style`, and `use_speaker_boost` controls.
 - Voice IDs from the `/voices` endpoint are stable per ElevenLabs account. If you change accounts (different API key), the IDs change too.
 - For very long text, prefer the async `/jobs` endpoint — sync hits the 5000-char cap and may also exceed `SYNC_TIMEOUT`.
 - ElevenLabs free tier has tighter per-request character limits and concurrency. Check `max_characters_request_free_user` / `max_characters_request_subscribed_user` on the model object (see `research-elevenlab.md`).
