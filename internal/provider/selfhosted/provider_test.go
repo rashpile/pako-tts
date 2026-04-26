@@ -101,7 +101,7 @@ func TestProvider_Synthesize_HonorsExplicitModelID(t *testing.T) {
 	}
 }
 
-func TestProvider_Synthesize_IgnoresLanguageCode(t *testing.T) {
+func TestProvider_Synthesize_ForwardsLanguageCode(t *testing.T) {
 	var rawBody []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -136,17 +136,20 @@ func TestProvider_Synthesize_IgnoresLanguageCode(t *testing.T) {
 		t.Fatalf("Synthesize: %v", err)
 	}
 
-	// Capture the raw outbound bytes and assert the language_code key is
-	// absent. Decoding into selfhosted.SynthesisRequest would silently drop
-	// the field (struct has no LanguageCode), so this raw-bytes check is the
-	// only signal that catches a future regression where the field gets
-	// accidentally forwarded.
+	// Capture the raw outbound bytes and assert the language key is present
+	// with the expected value. We decode into map[string]any (rather than
+	// selfhosted.SynthesisRequest) so the assertion checks the wire format
+	// the upstream local TTS API actually sees.
 	var asMap map[string]any
 	if err := json.Unmarshal(rawBody, &asMap); err != nil {
 		t.Fatalf("decode raw body: %v", err)
 	}
-	if _, ok := asMap["language_code"]; ok {
-		t.Errorf("selfhosted upstream body unexpectedly contains language_code: %s", string(rawBody))
+	got, ok := asMap["language"]
+	if !ok {
+		t.Fatalf("selfhosted upstream body missing language key: %s", string(rawBody))
+	}
+	if got != "en" {
+		t.Errorf("selfhosted upstream body language = %v, want %q", got, "en")
 	}
 }
 

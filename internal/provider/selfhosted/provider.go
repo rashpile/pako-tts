@@ -95,16 +95,15 @@ func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest)
 	// Resolve model id: explicit req.ModelID wins. Otherwise fall back to the
 	// legacy heuristic that treats a short voice_id as a local model name
 	// (ElevenLabs IDs are 20+ chars; local models are typically shorter).
-	//
-	// Note: req.LanguageCode is intentionally ignored here. The local TTS API
-	// has no comparable parameter; future selfhosted backends can opt in by
-	// reading req.LanguageCode and forwarding it via SynthesisRequest.
 	switch {
 	case req.ModelID != "":
 		ttsReq.ModelID = req.ModelID
 	case req.VoiceID != "" && len(req.VoiceID) < 20:
 		ttsReq.ModelID = req.VoiceID
 	}
+
+	// Forward language code to the local TTS API (omitempty drops empty values).
+	ttsReq.Language = req.LanguageCode
 
 	// Set output format
 	switch req.OutputFormat {

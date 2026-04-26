@@ -359,6 +359,10 @@
 
         function loadModels(name) {
             resetModels('Loading models...');
+            // Reset language synchronously too — otherwise the previous
+            // provider's selection would still be sent if the user submits
+            // before /models resolves (race condition).
+            resetLanguages('Loading languages...');
             var token = ++modelLoadToken;
             fetch('/api/v1/providers/' + encodeURIComponent(name) + '/models')
                 .then(function (res) {
