@@ -398,6 +398,9 @@ components:
         voice_id:
           type: string
           description: Voice identifier (uses default if not specified)
+        model_id:
+          type: string
+          description: Provider-specific model id; uses provider's configured default when omitted
         output_format:
           type: string
           enum: [mp3, wav]
@@ -417,6 +420,9 @@ components:
         voice_id:
           type: string
           description: Voice identifier (uses default if not specified)
+        model_id:
+          type: string
+          description: Provider-specific model id; uses provider's configured default when omitted
         provider:
           type: string
           description: Provider name (uses default if not specified)

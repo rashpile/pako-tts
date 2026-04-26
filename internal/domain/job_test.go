@@ -8,10 +8,11 @@ import (
 func TestNewJob(t *testing.T) {
 	text := "Hello, world!"
 	voiceID := "voice123"
+	modelID := "eleven_v3"
 	providerName := "elevenlabs"
 	outputFormat := "mp3"
 
-	job := NewJob(text, voiceID, providerName, outputFormat, nil)
+	job := NewJob(text, voiceID, modelID, providerName, outputFormat, nil)
 
 	if job.ID == "" {
 		t.Error("Expected job ID to be generated")
@@ -24,6 +25,9 @@ func TestNewJob(t *testing.T) {
 	}
 	if job.VoiceID != voiceID {
 		t.Errorf("Expected voiceID %s, got %s", voiceID, job.VoiceID)
+	}
+	if job.ModelID != modelID {
+		t.Errorf("Expected modelID %s, got %s", modelID, job.ModelID)
 	}
 	if job.ProviderName != providerName {
 		t.Errorf("Expected providerName %s, got %s", providerName, job.ProviderName)
@@ -39,9 +43,16 @@ func TestNewJob(t *testing.T) {
 	}
 }
 
+func TestNewJob_EmptyModelID(t *testing.T) {
+	job := NewJob("test", "voice", "", "provider", "mp3", nil)
+	if job.ModelID != "" {
+		t.Errorf("Expected empty ModelID, got %q", job.ModelID)
+	}
+}
+
 func TestNewJobWithSettings(t *testing.T) {
 	settings := DefaultVoiceSettings()
-	job := NewJob("test", "voice", "provider", "mp3", settings)
+	job := NewJob("test", "voice", "", "provider", "mp3", settings)
 
 	if job.VoiceSettings == nil {
 		t.Error("Expected VoiceSettings to be set")
@@ -49,7 +60,7 @@ func TestNewJobWithSettings(t *testing.T) {
 }
 
 func TestJob_SetProcessing(t *testing.T) {
-	job := NewJob("test", "voice", "provider", "mp3", nil)
+	job := NewJob("test", "voice", "", "provider", "mp3", nil)
 
 	job.SetProcessing()
 
@@ -62,7 +73,7 @@ func TestJob_SetProcessing(t *testing.T) {
 }
 
 func TestJob_SetCompleted(t *testing.T) {
-	job := NewJob("test", "voice", "provider", "mp3", nil)
+	job := NewJob("test", "voice", "", "provider", "mp3", nil)
 	resultPath := "/storage/audio/test.mp3"
 	retentionHours := 24
 
@@ -86,7 +97,7 @@ func TestJob_SetCompleted(t *testing.T) {
 }
 
 func TestJob_SetFailed(t *testing.T) {
-	job := NewJob("test", "voice", "provider", "mp3", nil)
+	job := NewJob("test", "voice", "", "provider", "mp3", nil)
 	errMsg := "synthesis failed"
 
 	job.SetFailed(errMsg)
@@ -103,7 +114,7 @@ func TestJob_SetFailed(t *testing.T) {
 }
 
 func TestJob_UpdateProgress(t *testing.T) {
-	job := NewJob("test", "voice", "provider", "mp3", nil)
+	job := NewJob("test", "voice", "", "provider", "mp3", nil)
 	percentage := 50.0
 	estimatedCompletion := time.Now().Add(10 * time.Second)
 
@@ -119,14 +130,14 @@ func TestJob_UpdateProgress(t *testing.T) {
 
 func TestJob_IsExpired(t *testing.T) {
 	t.Run("nil ExpiresAt", func(t *testing.T) {
-		job := NewJob("test", "voice", "provider", "mp3", nil)
+		job := NewJob("test", "voice", "", "provider", "mp3", nil)
 		if job.IsExpired() {
 			t.Error("Expected job with nil ExpiresAt to not be expired")
 		}
 	})
 
 	t.Run("not expired", func(t *testing.T) {
-		job := NewJob("test", "voice", "provider", "mp3", nil)
+		job := NewJob("test", "voice", "", "provider", "mp3", nil)
 		future := time.Now().Add(1 * time.Hour)
 		job.ExpiresAt = &future
 
@@ -136,7 +147,7 @@ func TestJob_IsExpired(t *testing.T) {
 	})
 
 	t.Run("expired", func(t *testing.T) {
-		job := NewJob("test", "voice", "provider", "mp3", nil)
+		job := NewJob("test", "voice", "", "provider", "mp3", nil)
 		past := time.Now().Add(-1 * time.Hour)
 		job.ExpiresAt = &past
 
@@ -160,7 +171,7 @@ func TestJob_IsComplete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job := NewJob("test", "voice", "provider", "mp3", nil)
+			job := NewJob("test", "voice", "", "provider", "mp3", nil)
 			job.Status = tt.status
 
 			if job.IsComplete() != tt.expected {

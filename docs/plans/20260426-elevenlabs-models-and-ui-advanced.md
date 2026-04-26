@@ -527,17 +527,17 @@ if (settings) body.voice_settings = settings;
 > **Mass-update callout:** the `NewJob` signature change touches **31 call sites** total (11 + 16 + 1 + 3). Update them all in the same commit so the build is never broken. A simple `find . -name '*.go' -exec sed -i '' 's/NewJob(\("[^"]*"\), \("[^"]*"\), /NewJob(\1, \2, "", /' {} \;` won't fully work because of mixed identifier vs. literal arg styles — do it manually or with a careful gofmt-aware tool.
 
 - [x] add `ModelID string` to `domain.SynthesisRequest` (done in Task 2 as a forward dependency)
-- [ ] add `ModelID string \`json:"model_id,omitempty"\`` to `domain.Job`; update `NewJob` signature to `NewJob(text, voiceID, modelID, providerName, outputFormat string, settings *VoiceSettings) *Job`
-- [ ] update worker at `internal/queue/memory/worker.go:120` to copy `ModelID: job.ModelID` into the constructed `SynthesisRequest`
-- [ ] update **all 31** existing `domain.NewJob` call sites to pass the new `modelID` argument (use `""` for non-test sites; tests should pass `""` unless they're the new model-propagation test below)
-- [ ] add `ModelID string \`json:"model_id,omitempty"\`` to `handlers.TTSRequest`; in `SynthesizeTTS`, set `synthReq.ModelID = req.ModelID`
-- [ ] add `ModelID string \`json:"model_id,omitempty"\`` to `handlers.JobCreateRequest`; pass it as the new param to `domain.NewJob`
-- [ ] update `cmd/server/openapi.yaml` `TTSRequest` and `JobCreateRequest` schemas to document optional `model_id` (description: "Provider-specific model id; uses provider's configured default when omitted")
-- [ ] update `internal/domain/job_test.go` (`TestNewJob`) to assert the new `ModelID` field is stored on the returned `*Job`
-- [ ] create `internal/api/handlers/tts_test.go` with `TestSynthesizeTTS_PassesModelID`: build a `MockProvider` whose `SynthesizeFunc` captures the inbound `*domain.SynthesisRequest`; POST a JSON body with `"model_id": "eleven_v3"`; assert the captured `req.ModelID == "eleven_v3"`. Also assert `req.ModelID == ""` is left untouched when the field is omitted
-- [ ] extend `internal/api/handlers/jobs_test.go` with a `TestSubmitJob_PassesModelID`: POST `{"text":"x","model_id":"eleven_v3"}`; fetch the enqueued job from the mock queue; assert `job.ModelID == "eleven_v3"`
-- [ ] create `internal/queue/memory/worker_test.go` with `TestWorker_PropagatesJobModelIDToSynthesisRequest`: enqueue a job with `ModelID: "eleven_v3"`, run one tick of the worker against a `MockProvider` whose `SynthesizeFunc` captures the request, assert captured `req.ModelID == "eleven_v3"`. (Without this test, the worker wiring is uncovered.)
-- [ ] run `go test ./...` — must pass before next task
+- [x] add `ModelID string \`json:"model_id,omitempty"\`` to `domain.Job`; update `NewJob` signature to `NewJob(text, voiceID, modelID, providerName, outputFormat string, settings *VoiceSettings) *Job`
+- [x] update worker at `internal/queue/memory/worker.go:120` to copy `ModelID: job.ModelID` into the constructed `SynthesisRequest`
+- [x] update **all 31** existing `domain.NewJob` call sites to pass the new `modelID` argument (use `""` for non-test sites; tests should pass `""` unless they're the new model-propagation test below)
+- [x] add `ModelID string \`json:"model_id,omitempty"\`` to `handlers.TTSRequest`; in `SynthesizeTTS`, set `synthReq.ModelID = req.ModelID`
+- [x] add `ModelID string \`json:"model_id,omitempty"\`` to `handlers.JobCreateRequest`; pass it as the new param to `domain.NewJob`
+- [x] update `cmd/server/openapi.yaml` `TTSRequest` and `JobCreateRequest` schemas to document optional `model_id` (description: "Provider-specific model id; uses provider's configured default when omitted")
+- [x] update `internal/domain/job_test.go` (`TestNewJob`) to assert the new `ModelID` field is stored on the returned `*Job`
+- [x] create `internal/api/handlers/tts_test.go` with `TestSynthesizeTTS_PassesModelID`: build a `MockProvider` whose `SynthesizeFunc` captures the inbound `*domain.SynthesisRequest`; POST a JSON body with `"model_id": "eleven_v3"`; assert the captured `req.ModelID == "eleven_v3"`. Also assert `req.ModelID == ""` is left untouched when the field is omitted
+- [x] extend `internal/api/handlers/jobs_test.go` with a `TestSubmitJob_PassesModelID`: POST `{"text":"x","model_id":"eleven_v3"}`; fetch the enqueued job from the mock queue; assert `job.ModelID == "eleven_v3"`
+- [x] create `internal/queue/memory/worker_test.go` with `TestWorker_PropagatesJobModelIDToSynthesisRequest`: enqueue a job with `ModelID: "eleven_v3"`, run one tick of the worker against a `MockProvider` whose `SynthesizeFunc` captures the request, assert captured `req.ModelID == "eleven_v3"`. (Without this test, the worker wiring is uncovered.)
+- [x] run `go test ./...` — must pass before next task
 
 ### Task 5: UI — Model select + provider-keyed Advanced section
 

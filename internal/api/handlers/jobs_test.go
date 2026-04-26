@@ -58,6 +58,49 @@ func TestJobsHandler_SubmitJob(t *testing.T) {
 	}
 }
 
+func TestJobsHandler_SubmitJob_PassesModelID(t *testing.T) {
+	logger := testLogger()
+	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}
+	mockRegistry := mocks.NewMockProviderRegistry(mockProvider)
+	queue := memory.NewQueue(10)
+	mockStorage := mocks.NewMockStorage()
+
+	handler := NewJobsHandler(mockRegistry, queue, mockStorage, logger, "default-voice", 24)
+
+	reqBody := JobCreateRequest{
+		Text:    "Hello",
+		VoiceID: "voice123",
+		ModelID: "eleven_v3",
+	}
+	body, _ := json.Marshal(reqBody)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/jobs", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.SubmitJob(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d", resp.StatusCode)
+	}
+
+	var jobResp JobCreateResponse
+	if err := json.NewDecoder(resp.Body).Decode(&jobResp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	stored, err := queue.GetJob(context.Background(), jobResp.JobID)
+	if err != nil {
+		t.Fatalf("failed to get stored job: %v", err)
+	}
+	if stored.ModelID != "eleven_v3" {
+		t.Errorf("expected stored job.ModelID %q, got %q", "eleven_v3", stored.ModelID)
+	}
+}
+
 func TestJobsHandler_SubmitJob_InvalidJSON(t *testing.T) {
 	logger := testLogger()
 	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}
@@ -151,7 +194,7 @@ func TestJobsHandler_GetJobStatus(t *testing.T) {
 
 	// Create a job first
 	ctx := context.Background()
-	job := domain.NewJob("test text", "voice123", "test-provider", "mp3", nil)
+	job := domain.NewJob("test text", "voice123", "", "test-provider", "mp3", nil)
 	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	// Create request with chi URL params
@@ -221,7 +264,7 @@ func TestJobsHandler_GetJobResult_NotComplete(t *testing.T) {
 
 	// Create a job (still queued, not completed)
 	ctx := context.Background()
-	job := domain.NewJob("test text", "voice123", "test-provider", "mp3", nil)
+	job := domain.NewJob("test text", "voice123", "", "test-provider", "mp3", nil)
 	queue.Enqueue(ctx, job) //nolint:errcheck
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/jobs/"+job.ID+"/result", nil)
@@ -252,7 +295,7 @@ func TestJobsHandler_GetJobResult_Success(t *testing.T) {
 
 	// Create and complete a job
 	ctx := context.Background()
-	job := domain.NewJob("test text", "voice123", "test-provider", "mp3", nil)
+	job := domain.NewJob("test text", "voice123", "", "test-provider", "mp3", nil)
 	queue.Enqueue(ctx, job)      //nolint:errcheck
 	job.SetCompleted("/storage/"+job.ID+".mp3", 24)
 	queue.UpdateJob(ctx, job)    //nolint:errcheck
