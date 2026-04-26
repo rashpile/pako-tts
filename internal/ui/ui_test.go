@@ -51,6 +51,7 @@ func TestHandler_ServeHTTP(t *testing.T) {
 		`id="provider-select"`,
 		`id="voice-select"`,
 		`id="model-select"`,
+		`id="language-select"`,
 		`id="format-select"`,
 		`id="advanced-section"`,
 		"ADVANCED_SCHEMAS",
@@ -59,6 +60,7 @@ func TestHandler_ServeHTTP(t *testing.T) {
 		"'/api/v1/providers'",
 		"'/voices'",
 		"'/models'",
+		"language_code",
 	}
 
 	for _, marker := range wantMarkers {

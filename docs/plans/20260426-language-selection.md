@@ -306,14 +306,14 @@ if (languageCode) body.language_code = languageCode;
 - Modify: `internal/ui/index.html`
 - Modify: `internal/ui/ui_test.go`
 
-- [ ] add `<label for="language-select">` + `<select id="language-select" name="language_code">` to the form, immediately after the Model select
-- [ ] add the `languageSelect` JS variable, `resetLanguages(message)` helper, and `unionModelLanguages(models)` helper per Technical Details
-- [ ] hook into `loadModels(name)` success path: compute `unionModelLanguages(models)` and populate `languageSelect` (preserving the empty `'Default language'` option at the top)
-- [ ] hook into `loadModels(name)` `.catch` and the provider `change` listener's no-provider branch to call `resetLanguages('Default language')`
-- [ ] add `languageSelect.disabled = disabled;` to `setFormDisabled(disabled, label)` so the field is locked during in-flight requests
-- [ ] update form `submit` handler: include `body.language_code = languageCode` when non-empty (next to the existing `body.model_id` block)
-- [ ] extend `internal/ui/ui_test.go` body-marker assertions to include `id="language-select"` and `language_code` (so the submit-body wiring is locked in). Mirror the existing `id="model-select"` assertion at `ui_test.go:53`. Do NOT assert on internal helper names like `unionModelLanguages` — those lock the implementation without a real behavior signal.
-- [ ] run `go test ./internal/ui/...` and `go test ./...` — must pass before next task
+- [x] add `<label for="language-select">` + `<select id="language-select" name="language_code">` to the form, immediately after the Model select
+- [x] add the `languageSelect` JS variable, `resetLanguages(message)` helper, and `unionModelLanguages(models)` helper per Technical Details
+- [x] hook into `loadModels(name)` success path: compute `unionModelLanguages(models)` and populate `languageSelect` (preserving the empty `'Default language'` option at the top)
+- [x] hook into `loadModels(name)` `.catch` and the provider `change` listener's no-provider branch to call `resetLanguages('Default language')`
+- [x] add `languageSelect.disabled = disabled;` to `setFormDisabled(disabled, label)` so the field is locked during in-flight requests
+- [x] update form `submit` handler: include `body.language_code = languageCode` when non-empty (next to the existing `body.model_id` block)
+- [x] extend `internal/ui/ui_test.go` body-marker assertions to include `id="language-select"` and `language_code` (so the submit-body wiring is locked in). Mirror the existing `id="model-select"` assertion at `ui_test.go:53`. Do NOT assert on internal helper names like `unionModelLanguages` — those lock the implementation without a real behavior signal.
+- [x] run `go test ./internal/ui/...` and `go test ./...` — must pass before next task
 
 ### Task 5: Verify acceptance criteria
 
