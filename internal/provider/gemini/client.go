@@ -137,7 +137,7 @@ func (c *Client) GenerateAudio(ctx context.Context, model, prompt, voiceName str
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Gemini API error (status %d): %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("gemini API error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
 	var ttsResp TTSResponse
@@ -148,7 +148,7 @@ func (c *Client) GenerateAudio(ctx context.Context, model, prompt, voiceName str
 	if len(ttsResp.Candidates) == 0 ||
 		len(ttsResp.Candidates[0].Content.Parts) == 0 ||
 		ttsResp.Candidates[0].Content.Parts[0].InlineData == nil {
-		return nil, fmt.Errorf("Gemini API returned no audio data")
+		return nil, fmt.Errorf("gemini API returned no audio data")
 	}
 
 	pcm, err := base64.StdEncoding.DecodeString(ttsResp.Candidates[0].Content.Parts[0].InlineData.Data)

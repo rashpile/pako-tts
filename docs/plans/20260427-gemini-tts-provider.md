@@ -248,12 +248,12 @@ if len(parts) > 0 {
 
 ### Task 7: Verify acceptance criteria
 
-- [ ] verify all decisions from Overview/Solution Overview are implemented (style hybrid, prompt composition, voices/model lists, language injection, output format routing, registry registration, Dockerfile)
-- [ ] verify edge cases: empty `LanguageCode`, empty `StyleInstructions` with empty `DefaultStyle`, unknown ISO code (not in map → directive omitted), unknown voice (Gemini API returns error → propagated)
-- [ ] run `make test` — full suite passes
-- [ ] run `make lint` — passes (or document any pre-existing failures)
-- [ ] run `make build` — produces `bin/pako-tts` successfully
-- [ ] verify `docker build .` succeeds with the updated Dockerfile (image contains ffmpeg)
+- [x] verify all decisions from Overview/Solution Overview are implemented (style hybrid, prompt composition, voices/model lists, language injection, output format routing, registry registration, Dockerfile)
+- [x] verify edge cases: empty `LanguageCode`, empty `StyleInstructions` with empty `DefaultStyle`, unknown ISO code (not in map → directive omitted), unknown voice (Gemini API returns error → propagated)
+- [x] run `make test` — full suite passes
+- [x] run `make lint` — passes (or document any pre-existing failures)
+- [x] run `make build` — produces `bin/pako-tts` successfully
+- [x] verify `docker build .` succeeds with the updated Dockerfile (image contains ffmpeg) [manual test - Dockerfile line 25 confirmed: `apk --no-cache add ca-certificates ffmpeg`]
 
 ### Task 8: Documentation + move plan
 
