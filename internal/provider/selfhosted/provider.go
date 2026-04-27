@@ -102,6 +102,9 @@ func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest)
 		ttsReq.ModelID = req.VoiceID
 	}
 
+	// Forward language code to the local TTS API (omitempty drops empty values).
+	ttsReq.Language = req.LanguageCode
+
 	// Set output format
 	switch req.OutputFormat {
 	case "mp3":
@@ -167,13 +170,15 @@ func (p *Provider) ListVoices(ctx context.Context) ([]domain.Voice, error) {
 
 // ListModels returns available models for selfhosted.
 //
-// Selfhosted's upstream `voices_endpoint` defaults to `/api/v1/models`, so
-// `ListVoices` already returns the upstream model list. Returning the same
-// items here would duplicate the dropdowns in the UI and produce confusing
-// `voice_id == model_id` request bodies. Returning (nil, nil) is intentional —
-// the handler normalizes nil to `[]`, and the UI's Model dropdown then shows
-// only "Default model", which is the correct UX for selfhosted (no separate
-// model concept distinct from voices).
+// Selfhosted's upstream `voices_endpoint` defaults to `/api/v1/models`, which
+// means models and voices come from the same upstream list — they ARE the
+// same entities for this provider. Returning models here would duplicate the
+// Voice dropdown as a Model dropdown in the UI, and because `Synthesize`
+// resolves model_id with precedence over voice_id, a user could submit a
+// voice/model combo where the chosen voice is silently overridden by an
+// unrelated model_id. Returning nil keeps `ListVoices` as the single source
+// of truth for selfhosted; clients wanting per-model metadata can query
+// `ListVoices` instead.
 func (p *Provider) ListModels(ctx context.Context) ([]domain.Model, error) {
 	return nil, nil
 }

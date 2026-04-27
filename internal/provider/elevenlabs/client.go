@@ -40,6 +40,7 @@ type TTSRequest struct {
 	// (either from the request or the configured default). The Client itself
 	// does not apply a fallback; if empty, the upstream API surfaces its own error.
 	ModelID       string            `json:"model_id"`
+	LanguageCode  string            `json:"language_code,omitempty"`
 	OutputFormat  string            `json:"output_format,omitempty"`
 	VoiceSettings *VoiceSettingsReq `json:"voice_settings,omitempty"`
 }

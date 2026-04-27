@@ -43,6 +43,7 @@ type TTSRequest struct {
 	Text          string                `json:"text"`
 	VoiceID       string                `json:"voice_id,omitempty"`
 	ModelID       string                `json:"model_id,omitempty"`
+	LanguageCode  string                `json:"language_code,omitempty"`
 	Provider      string                `json:"provider,omitempty"`
 	OutputFormat  string                `json:"output_format,omitempty"`
 	VoiceSettings *domain.VoiceSettings `json:"voice_settings,omitempty"`
@@ -116,6 +117,7 @@ func (h *TTSHandler) SynthesizeTTS(w http.ResponseWriter, r *http.Request) {
 		Text:         req.Text,
 		VoiceID:      voiceID,
 		ModelID:      req.ModelID,
+		LanguageCode: req.LanguageCode,
 		OutputFormat: outputFormat,
 		Settings:     req.VoiceSettings,
 	}

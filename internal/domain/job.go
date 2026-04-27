@@ -23,6 +23,7 @@ type Job struct {
 	Text                  string         `json:"text,omitempty"`
 	VoiceID               string         `json:"voice_id"`
 	ModelID               string         `json:"model_id,omitempty"`
+	LanguageCode          string         `json:"language_code,omitempty"`
 	ProviderName          string         `json:"provider_name"`
 	OutputFormat          string         `json:"output_format"`
 	VoiceSettings         *VoiceSettings `json:"voice_settings,omitempty"`
@@ -37,13 +38,14 @@ type Job struct {
 }
 
 // NewJob creates a new job with default values.
-func NewJob(text, voiceID, modelID, providerName, outputFormat string, settings *VoiceSettings) *Job {
+func NewJob(text, voiceID, modelID, languageCode, providerName, outputFormat string, settings *VoiceSettings) *Job {
 	return &Job{
 		ID:                 uuid.New().String(),
 		Status:             JobStatusQueued,
 		Text:               text,
 		VoiceID:            voiceID,
 		ModelID:            modelID,
+		LanguageCode:       languageCode,
 		ProviderName:       providerName,
 		OutputFormat:       outputFormat,
 		VoiceSettings:      settings,

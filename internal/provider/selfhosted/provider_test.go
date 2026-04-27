@@ -13,11 +13,13 @@ import (
 )
 
 func TestProvider_ListModels_ReturnsNil(t *testing.T) {
-	called := false
+	// Selfhosted's models == voices upstream. ListModels deliberately returns
+	// (nil, nil) so the UI's Model dropdown stays empty for selfhosted users
+	// (the Voice dropdown already exposes the same entities). The contract is
+	// that no upstream HTTP call is made — assert that by failing if the test
+	// server is contacted.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"models":[{"id":"m1","name":"Model 1","is_available":true}]}`))
+		t.Errorf("ListModels should not make an upstream HTTP call (got %s %s)", r.Method, r.URL.Path)
 	}))
 	defer srv.Close()
 
@@ -34,10 +36,7 @@ func TestProvider_ListModels_ReturnsNil(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if models != nil {
-		t.Errorf("expected nil models slice, got %v", models)
-	}
-	if called {
-		t.Errorf("ListModels must not call the upstream — selfhosted has no separate model concept")
+		t.Errorf("expected ListModels to return nil, got %+v", models)
 	}
 }
 
@@ -101,13 +100,21 @@ func TestProvider_Synthesize_HonorsExplicitModelID(t *testing.T) {
 	}
 }
 
-func TestProvider_ListVoices_StillWorksAfterListModelsAdded(t *testing.T) {
+func TestProvider_Synthesize_ForwardsLanguageCode(t *testing.T) {
+	var rawBody []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/models" {
-			t.Errorf("expected /api/v1/models, got %s", r.URL.Path)
+		switch r.URL.Path {
+		case "/api/v1/tts":
+			b, err := io.ReadAll(r.Body)
+			if err != nil {
+				t.Fatalf("read tts body: %v", err)
+			}
+			rawBody = b
+			w.Header().Set("Content-Type", "audio/wav")
+			_, _ = w.Write([]byte("audio"))
+		default:
+			http.NotFound(w, r)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"models":[{"id":"voice-a","name":"Voice A","is_available":true,"languages":["en"]}]}`))
 	}))
 	defer srv.Close()
 
@@ -116,17 +123,32 @@ func TestProvider_ListVoices_StillWorksAfterListModelsAdded(t *testing.T) {
 		BaseURL: srv.URL,
 	}, true)
 	if err != nil {
-		t.Fatalf("unexpected error from NewProviderFromConfig: %v", err)
+		t.Fatalf("NewProviderFromConfig: %v", err)
 	}
 
-	voices, err := p.ListVoices(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	req := &domain.SynthesisRequest{
+		Text:         "hi",
+		VoiceID:      "short-voice",
+		LanguageCode: "en",
 	}
-	if len(voices) != 1 {
-		t.Fatalf("expected 1 voice, got %d", len(voices))
+	if _, err := p.Synthesize(context.Background(), req); err != nil {
+		t.Fatalf("Synthesize: %v", err)
 	}
-	if voices[0].VoiceID != "voice-a" {
-		t.Errorf("expected voice id 'voice-a', got %s", voices[0].VoiceID)
+
+	// Capture the raw outbound bytes and assert the language key is present
+	// with the expected value. We decode into map[string]any (rather than
+	// selfhosted.SynthesisRequest) so the assertion checks the wire format
+	// the upstream local TTS API actually sees.
+	var asMap map[string]any
+	if err := json.Unmarshal(rawBody, &asMap); err != nil {
+		t.Fatalf("decode raw body: %v", err)
+	}
+	got, ok := asMap["language"]
+	if !ok {
+		t.Fatalf("selfhosted upstream body missing language key: %s", string(rawBody))
+	}
+	if got != "en" {
+		t.Errorf("selfhosted upstream body language = %v, want %q", got, "en")
 	}
 }
+

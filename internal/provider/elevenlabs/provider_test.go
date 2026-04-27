@@ -253,6 +253,21 @@ func captureTTSBody(t *testing.T, captured *TTSRequest) http.HandlerFunc {
 	}
 }
 
+// captureRawBody captures the raw inbound body bytes so callers can assert on
+// presence/absence of specific JSON keys (e.g. omitempty behavior).
+func captureRawBody(t *testing.T, captured *[]byte) http.HandlerFunc {
+	t.Helper()
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read body: %v", err)
+		}
+		*captured = body
+		w.Header().Set("Content-Type", "audio/mpeg")
+		_, _ = w.Write([]byte("fake-audio"))
+	}
+}
+
 func TestProvider_Synthesize_UsesRequestModelID(t *testing.T) {
 	var captured TTSRequest
 	client, srv := newTestClient(t, captureTTSBody(t, &captured))
@@ -287,5 +302,47 @@ func TestProvider_Synthesize_FallsBackToDefaultModelID(t *testing.T) {
 	}
 	if captured.ModelID != "eleven_multilingual_v2" {
 		t.Errorf("expected default model_id sent, got %q", captured.ModelID)
+	}
+}
+
+func TestProvider_Synthesize_PassesLanguageCode(t *testing.T) {
+	var captured TTSRequest
+	client, srv := newTestClient(t, captureTTSBody(t, &captured))
+	defer srv.Close()
+
+	p := &Provider{client: client, defaultModelID: "eleven_multilingual_v2"}
+	_, err := p.Synthesize(context.Background(), &domain.SynthesisRequest{
+		Text:         "hola",
+		VoiceID:      "voice-1",
+		ModelID:      "eleven_flash_v2_5",
+		LanguageCode: "es",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if captured.LanguageCode != "es" {
+		t.Errorf("expected request language_code 'es', got %q", captured.LanguageCode)
+	}
+}
+
+func TestProvider_Synthesize_OmitsLanguageCodeWhenEmpty(t *testing.T) {
+	var capturedRaw []byte
+	client, srv := newTestClient(t, captureRawBody(t, &capturedRaw))
+	defer srv.Close()
+
+	p := &Provider{client: client, defaultModelID: "eleven_multilingual_v2"}
+	_, err := p.Synthesize(context.Background(), &domain.SynthesisRequest{
+		Text:    "hello",
+		VoiceID: "voice-1",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	var asMap map[string]any
+	if err := json.Unmarshal(capturedRaw, &asMap); err != nil {
+		t.Fatalf("decode raw body: %v", err)
+	}
+	if _, ok := asMap["language_code"]; ok {
+		t.Errorf("expected raw body to NOT contain language_code key, got %s", string(capturedRaw))
 	}
 }

@@ -67,9 +67,11 @@ docker run -p 8080:8080 -e ELEVENLABS_API_KEY=your-key pako-tts
 
 Both `POST /api/v1/tts` and `POST /api/v1/jobs` accept an optional `model_id` field. When omitted, the provider's configured default model is used (for ElevenLabs, set via `model_id` in `config.yaml` — defaults to `eleven_multilingual_v2`).
 
+Both endpoints also accept an optional `language_code` field (ISO 639-1, e.g. `"en"`, `"es"`). When set, the chosen model is forced to render in that language; if the model does not support the requested language, the upstream error is surfaced as a 503. When omitted, the provider/model default applies. The selfhosted provider forwards `language_code` to its upstream `language` field via the API. The browser UI Language picker is currently populated only from ElevenLabs' models endpoint; selfhosted users wanting to set a language must do so via the API directly (not the UI).
+
 ## Web UI
 
-A simple browser UI is available at [`/ui/`](http://localhost:8080/ui/) for trying the API without writing curl commands. It lets you pick a provider, choose a voice and model, enter text, select an output format (mp3/wav), and play or download the synthesized audio in-browser. A collapsible **Advanced** section exposes provider-specific voice settings (for ElevenLabs: `stability`, `similarity_boost`, `style`, `use_speaker_boost`). The UI is a single embedded HTML file served by the same Go binary — no extra build step or static-asset hosting required.
+A simple browser UI is available at [`/ui/`](http://localhost:8080/ui/) for trying the API without writing curl commands. It lets you pick a provider, choose a voice, model, and language (ISO 639-1 code; populated from the union of languages advertised by the loaded models), enter text, select an output format (mp3/wav), and play or download the synthesized audio in-browser. A collapsible **Advanced** section exposes provider-specific voice settings (for ElevenLabs: `stability`, `similarity_boost`, `style`, `use_speaker_boost`). The UI is a single embedded HTML file served by the same Go binary — no extra build step or static-asset hosting required.
 
 ## Providers
 

@@ -401,6 +401,9 @@ components:
         model_id:
           type: string
           description: Provider-specific model id; uses provider's configured default when omitted
+        language_code:
+          type: string
+          description: ISO 639-1 language code (e.g. "en"). Forces the chosen model to render in this language. Provider/model default when omitted; some models do not support all languages and will return an upstream error.
         output_format:
           type: string
           enum: [mp3, wav]
@@ -423,6 +426,9 @@ components:
         model_id:
           type: string
           description: Provider-specific model id; uses provider's configured default when omitted
+        language_code:
+          type: string
+          description: ISO 639-1 language code (e.g. "en"). Forces the chosen model to render in this language. Provider/model default when omitted; some models do not support all languages and will return an upstream error.
         provider:
           type: string
           description: Provider name (uses default if not specified)

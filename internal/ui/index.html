@@ -158,6 +158,11 @@
                     <option value="">Default model</option>
                 </select>
 
+                <label for="language-select">Language</label>
+                <select id="language-select" name="language_code">
+                    <option value="">Default language</option>
+                </select>
+
                 <label for="format-select">Output Format</label>
                 <select id="format-select" name="output_format">
                     <option value="mp3">MP3</option>
@@ -188,6 +193,7 @@
         var providerSelect = document.getElementById('provider-select');
         var voiceSelect = document.getElementById('voice-select');
         var modelSelect = document.getElementById('model-select');
+        var languageSelect = document.getElementById('language-select');
         var formatSelect = document.getElementById('format-select');
         var advancedSection = document.getElementById('advanced-section');
         var advancedControls = document.getElementById('advanced-controls');
@@ -236,6 +242,7 @@
             providerSelect.disabled = disabled;
             voiceSelect.disabled = disabled;
             modelSelect.disabled = disabled;
+            languageSelect.disabled = disabled;
             formatSelect.disabled = disabled;
             submitBtn.disabled = disabled;
             submitBtn.textContent = label || 'Synthesize';
@@ -255,6 +262,28 @@
             opt.value = '';
             opt.textContent = message || 'Default model';
             modelSelect.appendChild(opt);
+        }
+
+        function resetLanguages(message) {
+            languageSelect.innerHTML = '';
+            var opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = message || 'Default language';
+            languageSelect.appendChild(opt);
+        }
+
+        // Compute the union of language codes across an array of models. Sorts result
+        // for deterministic option ordering.
+        function unionModelLanguages(models) {
+            var seen = {};
+            for (var i = 0; i < models.length; i++) {
+                var langs = models[i].languages || [];
+                for (var j = 0; j < langs.length; j++) seen[langs[j]] = true;
+            }
+            var out = [];
+            for (var k in seen) if (seen.hasOwnProperty(k)) out.push(k);
+            out.sort();
+            return out;
         }
 
         function renderAdvanced(name) {
@@ -330,6 +359,10 @@
 
         function loadModels(name) {
             resetModels('Loading models...');
+            // Reset language synchronously too — otherwise the previous
+            // provider's selection would still be sent if the user submits
+            // before /models resolves (race condition).
+            resetLanguages('Loading languages...');
             var token = ++modelLoadToken;
             fetch('/api/v1/providers/' + encodeURIComponent(name) + '/models')
                 .then(function (res) {
@@ -350,11 +383,20 @@
                         opt.textContent = m.name || m.model_id;
                         modelSelect.appendChild(opt);
                     });
+                    var langs = unionModelLanguages(models);
+                    resetLanguages('Default language');
+                    langs.forEach(function (code) {
+                        var opt = document.createElement('option');
+                        opt.value = code;
+                        opt.textContent = code;
+                        languageSelect.appendChild(opt);
+                    });
                 })
                 .catch(function () {
                     if (token !== modelLoadToken) return;
                     // Best-effort: model list is optional — fall back to "Default model".
                     resetModels('Default model');
+                    resetLanguages('Default language');
                 });
         }
 
@@ -444,6 +486,7 @@
             } else {
                 resetVoices('Default voice');
                 resetModels('Default model');
+                resetLanguages('Default language');
                 advancedSection.style.display = 'none';
             }
         });
@@ -466,6 +509,8 @@
             if (voiceID) body.voice_id = voiceID;
             var modelID = modelSelect.value;
             if (modelID) body.model_id = modelID;
+            var languageCode = languageSelect.value;
+            if (languageCode) body.language_code = languageCode;
             var outputFormat = formatSelect.value || 'mp3';
             body.output_format = outputFormat;
             var voiceSettings = collectVoiceSettings();
