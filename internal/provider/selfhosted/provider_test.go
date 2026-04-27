@@ -12,12 +12,17 @@ import (
 	"github.com/pako-tts/server/pkg/config"
 )
 
-func TestProvider_ListModels_ReturnsNil(t *testing.T) {
-	called := false
+func TestProvider_ListModels_PreservesAllLanguages(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
+		if r.URL.Path != "/api/v1/models" {
+			t.Errorf("expected /api/v1/models, got %s", r.URL.Path)
+		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"models":[{"id":"m1","name":"Model 1","is_available":true}]}`))
+		_, _ = w.Write([]byte(`{"models":[` +
+			`{"id":"m1","name":"Model 1","is_available":true,"languages":["en","es","fr"]},` +
+			`{"id":"m2","name":"Model 2","is_available":true,"languages":["de","en"]},` +
+			`{"id":"m3","name":"Hidden","is_available":false,"languages":["pt"]}` +
+			`]}`))
 	}))
 	defer srv.Close()
 
@@ -33,12 +38,36 @@ func TestProvider_ListModels_ReturnsNil(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if models != nil {
-		t.Errorf("expected nil models slice, got %v", models)
+	if len(models) != 2 {
+		t.Fatalf("expected 2 available models (unavailable filtered), got %d", len(models))
 	}
-	if called {
-		t.Errorf("ListModels must not call the upstream — selfhosted has no separate model concept")
+
+	// Verify model fields and that ALL languages are preserved (not flattened
+	// to the primary language as ListVoices does).
+	if models[0].ModelID != "m1" || models[0].Name != "Model 1" || models[0].Provider != "local" {
+		t.Errorf("model[0] mismatch: %+v", models[0])
 	}
+	if got, want := models[0].Languages, []string{"en", "es", "fr"}; !equalStringSlices(got, want) {
+		t.Errorf("model[0].Languages = %v, want %v (all languages, not just primary)", got, want)
+	}
+	if models[1].ModelID != "m2" || models[1].Name != "Model 2" {
+		t.Errorf("model[1] mismatch: %+v", models[1])
+	}
+	if got, want := models[1].Languages, []string{"de", "en"}; !equalStringSlices(got, want) {
+		t.Errorf("model[1].Languages = %v, want %v", got, want)
+	}
+}
+
+func equalStringSlices(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func TestProvider_Synthesize_HonorsExplicitModelID(t *testing.T) {

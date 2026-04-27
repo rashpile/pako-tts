@@ -67,7 +67,7 @@ docker run -p 8080:8080 -e ELEVENLABS_API_KEY=your-key pako-tts
 
 Both `POST /api/v1/tts` and `POST /api/v1/jobs` accept an optional `model_id` field. When omitted, the provider's configured default model is used (for ElevenLabs, set via `model_id` in `config.yaml` — defaults to `eleven_multilingual_v2`).
 
-Both endpoints also accept an optional `language_code` field (ISO 639-1, e.g. `"en"`, `"es"`). When set, the chosen model is forced to render in that language; if the model does not support the requested language, the upstream error is surfaced as a 503. When omitted, the provider/model default applies. The selfhosted provider currently ignores this field.
+Both endpoints also accept an optional `language_code` field (ISO 639-1, e.g. `"en"`, `"es"`). When set, the chosen model is forced to render in that language; if the model does not support the requested language, the upstream error is surfaced as a 503. When omitted, the provider/model default applies. The selfhosted provider forwards `language_code` to its upstream `language` field.
 
 ## Web UI
 

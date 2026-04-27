@@ -170,15 +170,36 @@ func (p *Provider) ListVoices(ctx context.Context) ([]domain.Voice, error) {
 
 // ListModels returns available models for selfhosted.
 //
-// Selfhosted's upstream `voices_endpoint` defaults to `/api/v1/models`, so
-// `ListVoices` already returns the upstream model list. Returning the same
-// items here would duplicate the dropdowns in the UI and produce confusing
-// `voice_id == model_id` request bodies. Returning (nil, nil) is intentional —
-// the handler normalizes nil to `[]`, and the UI's Model dropdown then shows
-// only "Default model", which is the correct UX for selfhosted (no separate
-// model concept distinct from voices).
+// Selfhosted's upstream `voices_endpoint` defaults to `/api/v1/models`, which
+// means models and voices come from the same upstream list — `ListVoices` and
+// `ListModels` therefore expose the same items. The Model and Voice dropdowns
+// in the UI will show the same entries; that's accepted because it lets the
+// UI derive the Language picker from the full union of `model.languages[]`
+// (preserving all languages each model supports) instead of the lossy
+// per-voice `Language` field that `ListVoices` flattens to a single primary
+// language. Earlier this method returned nil to suppress the duplicate Model
+// dropdown, but that left multi-language selfhosted models with their
+// secondary languages unreachable from the UI.
 func (p *Provider) ListModels(ctx context.Context) ([]domain.Model, error) {
-	return nil, nil
+	resp, err := p.client.GetModels(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	models := make([]domain.Model, 0, len(resp.Models))
+	for _, m := range resp.Models {
+		if !m.IsAvailable {
+			continue
+		}
+		models = append(models, domain.Model{
+			ModelID:   m.ID,
+			Name:      m.Name,
+			Provider:  p.name,
+			Languages: m.Languages,
+		})
+	}
+
+	return models, nil
 }
 
 // IsAvailable checks if the provider is available.
