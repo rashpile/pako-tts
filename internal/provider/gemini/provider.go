@@ -76,9 +76,14 @@ func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest)
 		model = p.defaultModelID
 	}
 
+	voiceID := req.VoiceID
+	if voiceID == "" {
+		voiceID = defaultVoiceName
+	}
+
 	prompt := p.buildPrompt(req)
 
-	pcm, err := p.client.GenerateAudio(ctx, model, prompt, req.VoiceID)
+	pcm, err := p.client.GenerateAudio(ctx, model, prompt, voiceID)
 	if err != nil {
 		return nil, err
 	}

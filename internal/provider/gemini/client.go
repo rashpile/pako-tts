@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	neturl "net/url"
 	"time"
 )
 
@@ -100,7 +101,7 @@ type Candidate struct {
 // GenerateAudio calls the Gemini generateContent endpoint and returns raw PCM bytes.
 // The prompt should already include any language directive and style prefix.
 func (c *Client) GenerateAudio(ctx context.Context, model, prompt, voiceName string) ([]byte, error) {
-	url := fmt.Sprintf("%s/models/%s:generateContent", c.baseURL, model)
+	url := fmt.Sprintf("%s/models/%s:generateContent", c.baseURL, neturl.PathEscape(model))
 
 	reqBody := TTSRequest{
 		Contents: []Content{
@@ -135,9 +136,13 @@ func (c *Client) GenerateAudio(ctx context.Context, model, prompt, voiceName str
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 32*1024*1024))
+	const maxBody = 256 * 1024 * 1024 // 256 MiB — large enough for ~60 min of audio
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxBody))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+	if int64(len(respBody)) == maxBody {
+		return nil, fmt.Errorf("gemini response body exceeded %d bytes", maxBody)
 	}
 
 	if resp.StatusCode != http.StatusOK {

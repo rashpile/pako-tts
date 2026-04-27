@@ -3,8 +3,9 @@ package gemini
 import "github.com/pako-tts/server/internal/domain"
 
 const (
-	providerName   = "gemini"
-	defaultModelID = "gemini-3.1-flash-tts-preview"
+	providerName    = "gemini"
+	defaultModelID  = "gemini-3.1-flash-tts-preview"
+	defaultVoiceName = "Kore"
 )
 
 // supportedLanguages is the set of ISO 639-1 codes advertised by the model.
