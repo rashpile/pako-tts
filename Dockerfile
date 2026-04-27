@@ -21,8 +21,8 @@ FROM alpine:3.19
 
 WORKDIR /app
 
-# Install ca-certificates for HTTPS calls to ElevenLabs API
-RUN apk --no-cache add ca-certificates
+# Install ca-certificates for HTTPS calls and ffmpeg for PCM→MP3 transcoding
+RUN apk --no-cache add ca-certificates ffmpeg
 
 # Create non-root user
 RUN adduser -D -g '' appuser

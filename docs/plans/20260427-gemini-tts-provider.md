@@ -165,13 +165,13 @@ if len(parts) > 0 {
 - Modify: `Dockerfile`
 - Modify: `.github/workflows/ci.yml`
 
-- [ ] create `internal/audio/transcode/wav.go` with `PCMToWAV(pcm []byte, sampleRate, channels, bitsPerSample int) []byte` — writes 44-byte RIFF header + PCM data using `encoding/binary` (little-endian) per the byte-offset table in Technical Details above
-- [ ] create `internal/audio/transcode/transcode.go` with `PCMToMP3(ctx context.Context, pcm []byte, sampleRate, channels int) ([]byte, error)` — shells out to `ffmpeg` via `os/exec`, pipes PCM in via stdin, reads MP3 from stdout, captures stderr for error context, respects context cancellation. Expose `var ffmpegBinary = "ffmpeg"` as a package-level variable so tests can override it without mutating the parent process's `PATH`
-- [ ] write tests for `PCMToWAV`: verify byte-for-byte header layout (RIFF/WAVE/fmt /data chunk markers, ChunkSize = 36+dataSize, Subchunk2Size = dataSize, sample rate, channels, bits per sample) for 1-second 24kHz mono PCM input
-- [ ] write tests for `PCMToMP3`: happy path (decode output frame and verify it's valid MP3 by signature `0xFF 0xFB` or `0xFF 0xFA`), context cancellation path (cancel mid-encode, expect error), missing-binary path (override `ffmpegBinary` to a non-existent path OR use `t.Setenv("PATH", t.TempDir())` — DO NOT use `os.Setenv` to avoid polluting parallel tests), structured error contains stderr context
-- [ ] modify `Dockerfile:25` from `RUN apk --no-cache add ca-certificates` to `RUN apk --no-cache add ca-certificates ffmpeg`
-- [ ] modify `.github/workflows/ci.yml` test job to install ffmpeg before `go test` runs (e.g., `- name: Install ffmpeg\n        run: sudo apt-get update && sudo apt-get install -y ffmpeg`) — required so PCMToMP3 happy-path test executes for real in CI
-- [ ] run `make test` — must pass before next task
+- [x] create `internal/audio/transcode/wav.go` with `PCMToWAV(pcm []byte, sampleRate, channels, bitsPerSample int) []byte` — writes 44-byte RIFF header + PCM data using `encoding/binary` (little-endian) per the byte-offset table in Technical Details above
+- [x] create `internal/audio/transcode/transcode.go` with `PCMToMP3(ctx context.Context, pcm []byte, sampleRate, channels int) ([]byte, error)` — shells out to `ffmpeg` via `os/exec`, pipes PCM in via stdin, reads MP3 from stdout, captures stderr for error context, respects context cancellation. Expose `var ffmpegBinary = "ffmpeg"` as a package-level variable so tests can override it without mutating the parent process's `PATH`
+- [x] write tests for `PCMToWAV`: verify byte-for-byte header layout (RIFF/WAVE/fmt /data chunk markers, ChunkSize = 36+dataSize, Subchunk2Size = dataSize, sample rate, channels, bits per sample) for 1-second 24kHz mono PCM input
+- [x] write tests for `PCMToMP3`: happy path (decode output frame and verify it's valid MP3 by signature `0xFF 0xFB` or `0xFF 0xFA`), context cancellation path (cancel mid-encode, expect error), missing-binary path (override `ffmpegBinary` to a non-existent path OR use `t.Setenv("PATH", t.TempDir())` — DO NOT use `os.Setenv` to avoid polluting parallel tests), structured error contains stderr context
+- [x] modify `Dockerfile:25` from `RUN apk --no-cache add ca-certificates` to `RUN apk --no-cache add ca-certificates ffmpeg`
+- [x] modify `.github/workflows/ci.yml` test job to install ffmpeg before `go test` runs (e.g., `- name: Install ffmpeg\n        run: sudo apt-get update && sudo apt-get install -y ffmpeg`) — required so PCMToMP3 happy-path test executes for real in CI
+- [x] run `make test` — must pass before next task
 
 ### Task 2: Add `StyleInstructions` to VoiceSettings + `DefaultStyle` to ProviderConfig
 
