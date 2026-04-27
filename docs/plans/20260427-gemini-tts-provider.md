@@ -228,11 +228,11 @@ if len(parts) > 0 {
 - Modify: `internal/provider/registry/factory.go`
 - Create: `internal/provider/registry/factory_test.go` (if not present)
 
-- [ ] add import `"github.com/pako-tts/server/internal/provider/gemini"` in `factory.go`
-- [ ] add `geminiFactory(cfg config.ProviderConfig, isDefault bool) (domain.TTSProvider, error)` returning `gemini.NewProviderFromConfig(cfg, isDefault)`
-- [ ] register inside `init()`: `RegisterFactory("gemini", geminiFactory)`
-- [ ] write tests in `factory_test.go` (or add to existing): `GetFactory("gemini")` returns non-nil; `GetFactory("bogus")` returns `(_, false)` (locks the existing contract while we're adding test coverage to this previously-untested package — see mem #14); building via the factory with a valid config returns a working provider; missing APIKey returns the expected error
-- [ ] run `make test` — must pass before next task
+- [x] add import `"github.com/pako-tts/server/internal/provider/gemini"` in `factory.go`
+- [x] add `geminiFactory(cfg config.ProviderConfig, isDefault bool) (domain.TTSProvider, error)` returning `gemini.NewProviderFromConfig(cfg, isDefault)`
+- [x] register inside `init()`: `RegisterFactory("gemini", geminiFactory)`
+- [x] write tests in `factory_test.go` (or add to existing): `GetFactory("gemini")` returns non-nil; `GetFactory("bogus")` returns `(_, false)` (locks the existing contract while we're adding test coverage to this previously-untested package — see mem #14); building via the factory with a valid config returns a working provider; missing APIKey returns the expected error
+- [x] run `make test` — must pass before next task
 
 ### Task 6: API schema + handler tests for `style_instructions`
 
