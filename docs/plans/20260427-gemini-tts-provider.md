@@ -210,17 +210,17 @@ if len(parts) > 0 {
 - Create: `internal/provider/gemini/provider.go`
 - Create: `internal/provider/gemini/provider_test.go`
 
-- [ ] create `internal/provider/gemini/provider.go` with `Provider` struct (client, defaultModelID, defaultStyle, isDefault, activeJobs int32), `NewProvider`, `NewProviderFromConfig(cfg config.ProviderConfig, isDefault bool) (*Provider, error)` (requires `cfg.APIKey`, defaults `ModelID` to `gemini-3.1-flash-tts-preview`)
-- [ ] implement `Name()` returning `"gemini"` and `Type()` returning `"GeminiProvider"`. **Note**: `Type()` is NOT on the `domain.TTSProvider` interface — it's a concrete-struct convenience method called via type assertion (mirrors `elevenlabs.Provider.Type()`). Don't add it to mocks unless callers need it.
-- [ ] implement `Synthesize`: build prompt (language directive + style line + text), call `client.GenerateAudio`, route output via `switch req.OutputFormat { case "wav": ... ; default: ... // mp3 }` — mirrors `elevenlabs/provider.go:88-93`. `wav` → `transcode.PCMToWAV(pcm, 24000, 1, 16)` with content type `audio/wav`; `mp3` (and default for unknown formats) → `transcode.PCMToMP3(ctx, pcm, 24000, 1)` with content type `audio/mpeg`
-- [ ] implement `ListVoices` returning the static `prebuiltVoices` slice
-- [ ] implement `ListModels` returning `[]domain.Model{defaultModel}`
-- [ ] implement `IsAvailable` (delegates to `client.CheckHealth`), `MaxConcurrent` (returns `const maxConcurrent = 4` to mirror elevenlabs precedent — `cfg.MaxConcurrent` is plumbed through but not honored here, matching how `elevenlabs.NewProviderFromConfig` ignores it; revisit if rate-limit tuning becomes needed), `ActiveJobs` (atomic load), `Status`, `Info` — mirror elevenlabs shape
-- [ ] write tests for `Synthesize` with mocked httptest server: prompt composition cases (no lang/no style, lang only, style only, both — verify the `text` field sent upstream), output format cases (mp3 path verifies `audio/mpeg` ContentType + valid MP3 signature; wav path verifies `audio/wav` + RIFF header), per-request style overrides config default, config default used when request has empty style, error from upstream propagates
-- [ ] write tests for `ListVoices` (returns 30 entries, all `Language == ""`), `ListModels` (1 entry, ModelID matches, Languages non-empty)
-- [ ] write tests for `Info()` (returns expected `Type == "GeminiProvider"`, `Name == "gemini"`, `MaxConcurrent == 4`, `IsDefault` matches constructor flag)
-- [ ] write tests for `NewProviderFromConfig` (missing APIKey → error, empty ModelID → defaults to `gemini-3.1-flash-tts-preview`, DefaultStyle wired through)
-- [ ] run `make test` — must pass before next task
+- [x] create `internal/provider/gemini/provider.go` with `Provider` struct (client, defaultModelID, defaultStyle, isDefault, activeJobs int32), `NewProvider`, `NewProviderFromConfig(cfg config.ProviderConfig, isDefault bool) (*Provider, error)` (requires `cfg.APIKey`, defaults `ModelID` to `gemini-3.1-flash-tts-preview`)
+- [x] implement `Name()` returning `"gemini"` and `Type()` returning `"GeminiProvider"`. **Note**: `Type()` is NOT on the `domain.TTSProvider` interface — it's a concrete-struct convenience method called via type assertion (mirrors `elevenlabs.Provider.Type()`). Don't add it to mocks unless callers need it.
+- [x] implement `Synthesize`: build prompt (language directive + style line + text), call `client.GenerateAudio`, route output via `switch req.OutputFormat { case "wav": ... ; default: ... // mp3 }` — mirrors `elevenlabs/provider.go:88-93`. `wav` → `transcode.PCMToWAV(pcm, 24000, 1, 16)` with content type `audio/wav`; `mp3` (and default for unknown formats) → `transcode.PCMToMP3(ctx, pcm, 24000, 1)` with content type `audio/mpeg`
+- [x] implement `ListVoices` returning the static `prebuiltVoices` slice
+- [x] implement `ListModels` returning `[]domain.Model{defaultModel}`
+- [x] implement `IsAvailable` (delegates to `client.CheckHealth`), `MaxConcurrent` (returns `const maxConcurrent = 4` to mirror elevenlabs precedent — `cfg.MaxConcurrent` is plumbed through but not honored here, matching how `elevenlabs.NewProviderFromConfig` ignores it; revisit if rate-limit tuning becomes needed), `ActiveJobs` (atomic load), `Status`, `Info` — mirror elevenlabs shape
+- [x] write tests for `Synthesize` with mocked httptest server: prompt composition cases (no lang/no style, lang only, style only, both — verify the `text` field sent upstream), output format cases (mp3 path verifies `audio/mpeg` ContentType + valid MP3 signature; wav path verifies `audio/wav` + RIFF header), per-request style overrides config default, config default used when request has empty style, error from upstream propagates
+- [x] write tests for `ListVoices` (returns 30 entries, all `Language == ""`), `ListModels` (1 entry, ModelID matches, Languages non-empty)
+- [x] write tests for `Info()` (returns expected `Type == "GeminiProvider"`, `Name == "gemini"`, `MaxConcurrent == 4`, `IsDefault` matches constructor flag)
+- [x] write tests for `NewProviderFromConfig` (missing APIKey → error, empty ModelID → defaults to `gemini-3.1-flash-tts-preview`, DefaultStyle wired through)
+- [x] run `make test` — must pass before next task
 
 ### Task 5: Register `gemini` in provider factory
 
