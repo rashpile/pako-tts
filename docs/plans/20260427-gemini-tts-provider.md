@@ -241,10 +241,10 @@ if len(parts) > 0 {
 - Modify: `internal/api/handlers/tts_test.go` (or `jobs_test.go`)
 - Possibly modify: `internal/api/handlers/mocks/provider.go`
 
-- [ ] add `style_instructions` field (type string, optional) to the `VoiceSettings` schema in `cmd/server/openapi.yaml`
-- [ ] **No code change expected** in `internal/api/handlers/tts.go` and `jobs.go` since `VoiceSettings` is embedded and JSON-decoded as a whole. But: inspect `internal/api/handlers/mocks/provider.go` (`MockProviderRegistry` per mem #18) — if its mock provider doesn't capture the incoming `*SynthesisRequest` for assertions, extend it as part of this task (add a `LastRequest *SynthesisRequest` field set inside `Synthesize`). This is the bit that could surprise the implementer.
-- [ ] add a handler-level test that posts a payload with `voice_settings.style_instructions` set, asserts the field round-trips into the `domain.SynthesisRequest` passed to the provider mock, and asserts the response is delivered correctly
-- [ ] run `make test` — must pass before next task
+- [x] add `style_instructions` field (type string, optional) to the `VoiceSettings` schema in `cmd/server/openapi.yaml`
+- [x] **No code change expected** in `internal/api/handlers/tts.go` and `jobs.go` since `VoiceSettings` is embedded and JSON-decoded as a whole. But: inspect `internal/api/handlers/mocks/provider.go` (`MockProviderRegistry` per mem #18) — if its mock provider doesn't capture the incoming `*SynthesisRequest` for assertions, extend it as part of this task (add a `LastRequest *SynthesisRequest` field set inside `Synthesize`). This is the bit that could surprise the implementer.
+- [x] add a handler-level test that posts a payload with `voice_settings.style_instructions` set, asserts the field round-trips into the `domain.SynthesisRequest` passed to the provider mock, and asserts the response is delivered correctly
+- [x] run `make test` — must pass before next task
 
 ### Task 7: Verify acceptance criteria
 

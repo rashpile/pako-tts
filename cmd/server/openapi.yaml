@@ -471,6 +471,9 @@ components:
         use_speaker_boost:
           type: boolean
           description: Enable speaker boost
+        style_instructions:
+          type: string
+          description: Free-text style directive (Gemini only; ignored by other providers)
 
     JobCreateResponse:
       type: object

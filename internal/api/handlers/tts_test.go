@@ -85,6 +85,94 @@ func TestSynthesizeTTS_PassesModelID(t *testing.T) {
 	}
 }
 
+func TestSynthesizeTTS_PassesStyleInstructions(t *testing.T) {
+	tests := []struct {
+		name                    string
+		body                    map[string]any
+		wantStyleInstructions   string
+		wantStatusCode          int
+	}{
+		{
+			name: "style_instructions is forwarded to SynthesisRequest when provided",
+			body: map[string]any{
+				"text":     "hello",
+				"voice_id": "v1",
+				"voice_settings": map[string]any{
+					"style_instructions": "warm and slow",
+				},
+			},
+			wantStyleInstructions: "warm and slow",
+			wantStatusCode:        http.StatusOK,
+		},
+		{
+			name: "style_instructions is empty when voice_settings omitted",
+			body: map[string]any{
+				"text":     "hello",
+				"voice_id": "v1",
+			},
+			wantStyleInstructions: "",
+			wantStatusCode:        http.StatusOK,
+		},
+		{
+			name: "style_instructions is empty when voice_settings present but field omitted",
+			body: map[string]any{
+				"text":     "hello",
+				"voice_id": "v1",
+				"voice_settings": map[string]any{},
+			},
+			wantStyleInstructions: "",
+			wantStatusCode:        http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger := testLogger()
+
+			var captured *domain.SynthesisRequest
+			mockProvider := &mocks.MockProvider{
+				NameValue:      "test-provider",
+				AvailableValue: true,
+				SynthesizeFunc: func(ctx context.Context, req *domain.SynthesisRequest) (*domain.SynthesisResult, error) {
+					captured = req
+					return &domain.SynthesisResult{
+						Audio:       bytes.NewReader([]byte("audio")),
+						ContentType: "audio/mpeg",
+						SizeBytes:   5,
+					}, nil
+				},
+			}
+			registry := mocks.NewMockProviderRegistry(mockProvider)
+
+			handler := NewTTSHandler(registry, logger, 30*time.Second, 5000, "default-voice")
+
+			body, _ := json.Marshal(tt.body)
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/tts", bytes.NewReader(body))
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			handler.SynthesizeTTS(w, req)
+
+			resp := w.Result()
+			defer resp.Body.Close() //nolint:errcheck
+
+			if resp.StatusCode != tt.wantStatusCode {
+				t.Fatalf("expected status %d, got %d", tt.wantStatusCode, resp.StatusCode)
+			}
+			if captured == nil {
+				t.Fatal("SynthesizeFunc was not called")
+			}
+			gotStyleInstructions := ""
+			if captured.Settings != nil {
+				gotStyleInstructions = captured.Settings.StyleInstructions
+			}
+			if gotStyleInstructions != tt.wantStyleInstructions {
+				t.Errorf("expected SynthesisRequest.Settings.StyleInstructions %q, got %q", tt.wantStyleInstructions, gotStyleInstructions)
+			}
+		})
+	}
+}
+
 func TestSynthesizeTTS_PassesLanguageCode(t *testing.T) {
 	tests := []struct {
 		name             string
