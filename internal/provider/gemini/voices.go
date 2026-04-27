@@ -107,6 +107,16 @@ var defaultModel = domain.Model{
 	Languages:   supportedLanguages,
 }
 
+// validVoiceIDs is the set of known Gemini voice IDs, populated from prebuiltVoices.
+var validVoiceIDs map[string]bool
+
+func init() {
+	validVoiceIDs = make(map[string]bool, len(prebuiltVoices))
+	for _, v := range prebuiltVoices {
+		validVoiceIDs[v.VoiceID] = true
+	}
+}
+
 // prebuiltVoices lists the 30 prebuilt Gemini voices.
 // Language is empty because these voices are language-agnostic; the spoken
 // language is controlled via the LanguageCode field on each request.

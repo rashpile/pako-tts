@@ -137,11 +137,11 @@ func (c *Client) GenerateAudio(ctx context.Context, model, prompt, voiceName str
 	defer resp.Body.Close() //nolint:errcheck
 
 	const maxBody = 256 * 1024 * 1024 // 256 MiB — large enough for ~60 min of audio
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxBody))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxBody+1))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
-	if int64(len(respBody)) == maxBody {
+	if int64(len(respBody)) > maxBody {
 		return nil, fmt.Errorf("gemini response body exceeded %d bytes", maxBody)
 	}
 

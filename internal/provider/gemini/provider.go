@@ -77,7 +77,7 @@ func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest)
 	}
 
 	voiceID := req.VoiceID
-	if voiceID == "" {
+	if !validVoiceIDs[voiceID] {
 		voiceID = defaultVoiceName
 	}
 

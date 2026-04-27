@@ -227,7 +227,7 @@ func loadProvidersConfig(v *viper.Viper, cfg *Config) error {
 			TTSEndpoint:    getString(providerMap, "tts_endpoint"),
 			VoicesEndpoint: getString(providerMap, "voices_endpoint"),
 			HealthEndpoint: getString(providerMap, "health_endpoint"),
-			DefaultStyle:   getString(providerMap, "default_style"),
+			DefaultStyle:   expandEnvVars(getString(providerMap, "default_style")),
 		}
 
 		// Set defaults for selfhosted endpoints
