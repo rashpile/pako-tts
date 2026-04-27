@@ -135,7 +135,9 @@ func (p *Provider) buildPrompt(req *domain.SynthesisRequest) string {
 
 // ListVoices returns the static list of 30 prebuilt Gemini voices.
 func (p *Provider) ListVoices(_ context.Context) ([]domain.Voice, error) {
-	return prebuiltVoices, nil
+	result := make([]domain.Voice, len(prebuiltVoices))
+	copy(result, prebuiltVoices)
+	return result, nil
 }
 
 // ListModels returns the single Gemini TTS model entry.

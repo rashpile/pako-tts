@@ -18,9 +18,10 @@ const (
 
 // Client is an HTTP client for the Gemini API.
 type Client struct {
-	apiKey     string
-	baseURL    string
-	httpClient *http.Client
+	apiKey      string
+	baseURL     string
+	httpClient  *http.Client
+	healthClient *http.Client
 }
 
 // NewClient creates a new Gemini API client.
@@ -35,6 +36,9 @@ func NewClientWithBaseURL(apiKey, base string) *Client {
 		baseURL: base,
 		httpClient: &http.Client{
 			Timeout: 120 * time.Second,
+		},
+		healthClient: &http.Client{
+			Timeout: 5 * time.Second,
 		},
 	}
 }
@@ -131,13 +135,17 @@ func (c *Client) GenerateAudio(ctx context.Context, model, prompt, voiceName str
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 32*1024*1024))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("gemini API error (status %d)", resp.StatusCode)
+		snippet := respBody
+		if len(snippet) > 512 {
+			snippet = snippet[:512]
+		}
+		return nil, fmt.Errorf("gemini API error (status %d): %s", resp.StatusCode, snippet)
 	}
 
 	var ttsResp TTSResponse
@@ -170,7 +178,7 @@ func (c *Client) CheckHealth(ctx context.Context) bool {
 		return false
 	}
 
-	resp, err := c.httpClient.Do(httpReq)
+	resp, err := c.healthClient.Do(httpReq)
 	if err != nil {
 		return false
 	}
