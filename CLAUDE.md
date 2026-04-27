@@ -3,30 +3,47 @@
 Auto-generated from all feature plans. Last updated: 2025-12-03
 
 ## Active Technologies
-- Go 1.23+ + Chi router (v5.1.0), Viper (config), Zap (logging), UUID (002-local-tts-provider)
-- Filesystem (audio_cache directory) (002-local-tts-provider)
-
-- Go 1.23 (latest stable) + Chi router (v5.1.0), Viper (config), Zap (logging), UUID (001-tts-api-wrapper)
+- Go 1.23+ + Chi router (v5.1.0), Viper (config), Zap (logging), UUID
+- ffmpeg (runtime: PCM→MP3 transcoding via subprocess in `internal/audio/transcode/`)
+- Filesystem (audio_cache directory)
 
 ## Project Structure
 
 ```text
-src/
-tests/
+internal/
+  api/         — HTTP handlers, middleware, router
+  audio/
+    transcode/ — PCM→WAV (stdlib) and PCM→MP3 (ffmpeg subprocess)
+  domain/      — shared types (TTSProvider interface, VoiceSettings, Voice, Model, ...)
+  provider/
+    elevenlabs/
+    gemini/
+    selfhosted/
+    registry/  — factory registration and provider lookup
+  ui/          — embedded browser UI
+cmd/server/    — main entrypoint, OpenAPI spec
+pkg/config/    — Viper-based config loading
 ```
 
 ## Commands
 
-# Add commands for Go 1.23 (latest stable)
+```bash
+make fmt    # gofmt
+make lint   # golangci-lint
+make test   # go test -v -race ./...
+make build  # produces bin/pako-tts
+make run    # run server locally
+```
 
 ## Code Style
 
-Go 1.23 (latest stable): Follow standard conventions
+Go 1.23+: Follow standard conventions
 
-## Recent Changes
-- 002-local-tts-provider: Added Go 1.23+ + Chi router (v5.1.0), Viper (config), Zap (logging), UUID
+## Architecture Notes
 
-- 001-tts-api-wrapper: Added Go 1.23 (latest stable) + Chi router (v5.1.0), Viper (config), Zap (logging), UUID
+- Provider VoiceSettings contract: providers silently ignore fields they don't support (e.g. Gemini ignores stability/speed; ElevenLabs ignores style_instructions). No Capabilities() interface — dumb pass-through pattern (v1).
+- VoiceSettings.StyleInstructions is `string` not `*string`; empty == unset. Deliberate divergence from pointer-typed numeric fields.
+- loadProvidersConfig uses a manual map decoder, NOT mapstructure struct binding. New provider config fields MUST be added to both the struct tag AND the manual getString/getInt call in loadProvidersConfig (pkg/config/config.go). Adding only the struct tag will silently produce zero values from YAML config.
 
 <!-- MANUAL ADDITIONS START -->
 

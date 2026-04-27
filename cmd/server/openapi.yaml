@@ -4,14 +4,16 @@ info:
   description: |
     ## Text-to-Speech API
 
-    High-performance text-to-speech service powered by ElevenLabs.
+    High-performance text-to-speech service supporting multiple providers (ElevenLabs, Gemini Flash TTS, and self-hosted backends).
 
     ### Features
 
     * **Synchronous API**: Direct audio response for short texts (< 5,000 chars)
     * **Asynchronous Jobs**: Queue-based processing for long texts
+    * **Multiple Providers**: ElevenLabs, Gemini Flash TTS, and self-hosted backends
     * **Multiple Voices**: Wide selection of high-quality voices
     * **Voice Customization**: Adjustable stability, speed, and style
+    * **Style Instructions**: Free-text voice style directives (Gemini)
     * **Job Management**: Real-time status tracking and result retrieval
     * **Result Expiration**: Automatic cleanup of old audio results
 

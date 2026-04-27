@@ -137,7 +137,7 @@ func (c *Client) GenerateAudio(ctx context.Context, model, prompt, voiceName str
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("gemini API error (status %d): %s", resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("gemini API error (status %d)", resp.StatusCode)
 	}
 
 	var ttsResp TTSResponse
@@ -175,6 +175,7 @@ func (c *Client) CheckHealth(ctx context.Context) bool {
 		return false
 	}
 	defer resp.Body.Close() //nolint:errcheck
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	return resp.StatusCode == http.StatusOK
 }
