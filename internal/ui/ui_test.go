@@ -61,6 +61,8 @@ func TestHandler_ServeHTTP(t *testing.T) {
 		"'/voices'",
 		"'/models'",
 		"language_code",
+		"rebuildLanguageSelect",
+		"voiceLanguages",
 	}
 
 	for _, marker := range wantMarkers {

@@ -208,6 +208,15 @@
         var voiceLoadToken = 0;
         var modelLoadToken = 0;
 
+        // Language codes contributed by the most recent /models and /voices fetches
+        // for the currently selected provider. rebuildLanguageSelect() takes the
+        // union and rebuilds the dropdown. Tracked separately so each fetch can
+        // refresh its own contribution without clobbering the other (selfhosted's
+        // ListModels returns nil, so without the voice fallback the language
+        // dropdown would be empty for selfhosted users — see issue iter-2).
+        var modelLanguages = [];
+        var voiceLanguages = [];
+
         // Maps provider name -> provider type (populated from GET /api/v1/providers).
         // Keying advanced controls by *type* (not name) lets users rename their provider
         // in config.yaml without losing the UI controls.
@@ -286,6 +295,46 @@
             return out;
         }
 
+        // Collect distinct non-empty language codes from a voices array.
+        function collectVoiceLanguages(voices) {
+            var seen = {};
+            for (var i = 0; i < voices.length; i++) {
+                var lang = voices[i].language;
+                if (lang) seen[lang] = true;
+            }
+            var out = [];
+            for (var k in seen) if (seen.hasOwnProperty(k)) out.push(k);
+            out.sort();
+            return out;
+        }
+
+        // Rebuild language-select from union(modelLanguages, voiceLanguages),
+        // preserving the user's current selection if still valid. Always keeps
+        // the empty "Default language" option at the top.
+        function rebuildLanguageSelect() {
+            var prev = languageSelect.value;
+            var seen = {};
+            for (var i = 0; i < modelLanguages.length; i++) seen[modelLanguages[i]] = true;
+            for (var j = 0; j < voiceLanguages.length; j++) seen[voiceLanguages[j]] = true;
+            var codes = [];
+            for (var k in seen) if (seen.hasOwnProperty(k)) codes.push(k);
+            codes.sort();
+            languageSelect.innerHTML = '';
+            var def = document.createElement('option');
+            def.value = '';
+            def.textContent = 'Default language';
+            languageSelect.appendChild(def);
+            var stillValid = false;
+            codes.forEach(function (code) {
+                var opt = document.createElement('option');
+                opt.value = code;
+                opt.textContent = code;
+                languageSelect.appendChild(opt);
+                if (code === prev) stillValid = true;
+            });
+            if (stillValid) languageSelect.value = prev;
+        }
+
         function renderAdvanced(name) {
             advancedControls.innerHTML = '';
             var schema = ADVANCED_SCHEMAS[providerTypes[name]];
@@ -362,7 +411,8 @@
             // Reset language synchronously too — otherwise the previous
             // provider's selection would still be sent if the user submits
             // before /models resolves (race condition).
-            resetLanguages('Loading languages...');
+            modelLanguages = [];
+            rebuildLanguageSelect();
             var token = ++modelLoadToken;
             fetch('/api/v1/providers/' + encodeURIComponent(name) + '/models')
                 .then(function (res) {
@@ -383,20 +433,15 @@
                         opt.textContent = m.name || m.model_id;
                         modelSelect.appendChild(opt);
                     });
-                    var langs = unionModelLanguages(models);
-                    resetLanguages('Default language');
-                    langs.forEach(function (code) {
-                        var opt = document.createElement('option');
-                        opt.value = code;
-                        opt.textContent = code;
-                        languageSelect.appendChild(opt);
-                    });
+                    modelLanguages = unionModelLanguages(models);
+                    rebuildLanguageSelect();
                 })
                 .catch(function () {
                     if (token !== modelLoadToken) return;
                     // Best-effort: model list is optional — fall back to "Default model".
                     resetModels('Default model');
-                    resetLanguages('Default language');
+                    modelLanguages = [];
+                    rebuildLanguageSelect();
                 });
         }
 
@@ -447,6 +492,10 @@
         function loadVoices(name) {
             hideError();
             resetVoices('Loading voices...');
+            // Drop any prior voice-derived languages while loading; the model-derived
+            // set (if any) remains visible until this fetch resolves.
+            voiceLanguages = [];
+            rebuildLanguageSelect();
             var token = ++voiceLoadToken;
             fetch('/api/v1/providers/' + encodeURIComponent(name) + '/voices')
                 .then(function(res) {
@@ -469,10 +518,18 @@
                         opt.textContent = label;
                         voiceSelect.appendChild(opt);
                     });
+                    // Voices carry per-voice language metadata for both providers.
+                    // Use them as a fallback (and additive) source so providers like
+                    // selfhosted (whose ListModels returns nil) still get a populated
+                    // Language dropdown in the UI.
+                    voiceLanguages = collectVoiceLanguages(voices);
+                    rebuildLanguageSelect();
                 })
                 .catch(function(err) {
                     if (token !== voiceLoadToken) return;
                     resetVoices('Default voice');
+                    voiceLanguages = [];
+                    rebuildLanguageSelect();
                     showError('Could not load voices for "' + name + '": ' + err.message + '. The server default voice will be used and may not be valid for this provider.');
                 });
         }
@@ -486,7 +543,9 @@
             } else {
                 resetVoices('Default voice');
                 resetModels('Default model');
-                resetLanguages('Default language');
+                modelLanguages = [];
+                voiceLanguages = [];
+                rebuildLanguageSelect();
                 advancedSection.style.display = 'none';
             }
         });
