@@ -181,13 +181,13 @@ if len(parts) > 0 {
 - Modify: `pkg/config/config.go`
 - Modify: `pkg/config/config_test.go`
 
-- [ ] add `StyleInstructions string \`json:"style_instructions,omitempty"\`` to `domain.VoiceSettings` struct. **Note**: this is a `string` (not `*string`) — a deliberate divergence from the pointer-typed numeric fields. Empty string is treated as "unset"; the API consumer cannot signal "explicitly clear" separately from "not set", which is acceptable because there's no meaningful distinction for a free-text directive.
-- [ ] update `VoiceSettings.Merge` so `StyleInstructions` follows "non-empty other wins, otherwise base" (i.e., `if other.StyleInstructions != "" { result.StyleInstructions = other.StyleInstructions } else { result.StyleInstructions = v.StyleInstructions }`). Add a comment in the Merge function near this line clarifying the asymmetry vs pointer fields.
-- [ ] add `DefaultStyle string \`mapstructure:"default_style"\`` to `pkg/config/config.go` `ProviderConfig` struct (group with the existing per-provider fields, comment it as "For gemini")
-- [ ] add `DefaultStyle: getString(providerMap, "default_style"),` to the manual map decoder in `loadProvidersConfig` (around line 218-229 in `pkg/config/config.go`). The `mapstructure` tag alone is NOT enough — viper config goes through this manual decoder, not struct binding (see mem #97).
-- [ ] write/update tests for `VoiceSettings.Merge` covering `StyleInstructions` (both-empty, only-other-set, only-base-set, both-set → other wins)
-- [ ] write/update tests in `pkg/config/config_test.go` confirming `default_style` is loaded from yaml under a provider entry
-- [ ] run `make test` — must pass before next task
+- [x] add `StyleInstructions string \`json:"style_instructions,omitempty"\`` to `domain.VoiceSettings` struct. **Note**: this is a `string` (not `*string`) — a deliberate divergence from the pointer-typed numeric fields. Empty string is treated as "unset"; the API consumer cannot signal "explicitly clear" separately from "not set", which is acceptable because there's no meaningful distinction for a free-text directive.
+- [x] update `VoiceSettings.Merge` so `StyleInstructions` follows "non-empty other wins, otherwise base" (i.e., `if other.StyleInstructions != "" { result.StyleInstructions = other.StyleInstructions } else { result.StyleInstructions = v.StyleInstructions }`). Add a comment in the Merge function near this line clarifying the asymmetry vs pointer fields.
+- [x] add `DefaultStyle string \`mapstructure:"default_style"\`` to `pkg/config/config.go` `ProviderConfig` struct (group with the existing per-provider fields, comment it as "For gemini")
+- [x] add `DefaultStyle: getString(providerMap, "default_style"),` to the manual map decoder in `loadProvidersConfig` (around line 218-229 in `pkg/config/config.go`). The `mapstructure` tag alone is NOT enough — viper config goes through this manual decoder, not struct binding (see mem #97).
+- [x] write/update tests for `VoiceSettings.Merge` covering `StyleInstructions` (both-empty, only-other-set, only-base-set, both-set → other wins)
+- [x] write/update tests in `pkg/config/config_test.go` confirming `default_style` is loaded from yaml under a provider entry
+- [x] run `make test` — must pass before next task
 
 ### Task 3: Gemini HTTP client + voices/languages tables
 

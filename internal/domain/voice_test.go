@@ -111,3 +111,46 @@ func TestVoiceSettings_Merge_NilBase(t *testing.T) {
 		t.Errorf("Expected SimilarityBoost to be nil, got %v", result.SimilarityBoost)
 	}
 }
+
+func TestVoiceSettings_Merge_StyleInstructions(t *testing.T) {
+	tests := []struct {
+		name     string
+		base     *VoiceSettings
+		other    *VoiceSettings
+		expected string
+	}{
+		{
+			name:     "both empty",
+			base:     &VoiceSettings{},
+			other:    &VoiceSettings{},
+			expected: "",
+		},
+		{
+			name:     "only other set",
+			base:     &VoiceSettings{},
+			other:    &VoiceSettings{StyleInstructions: "warm and slow"},
+			expected: "warm and slow",
+		},
+		{
+			name:     "only base set",
+			base:     &VoiceSettings{StyleInstructions: "calm and clear"},
+			other:    &VoiceSettings{},
+			expected: "calm and clear",
+		},
+		{
+			name:     "both set — other wins",
+			base:     &VoiceSettings{StyleInstructions: "calm and clear"},
+			other:    &VoiceSettings{StyleInstructions: "warm and slow"},
+			expected: "warm and slow",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.base.Merge(tc.other)
+			if result.StyleInstructions != tc.expected {
+				t.Errorf("expected StyleInstructions %q, got %q", tc.expected, result.StyleInstructions)
+			}
+		})
+	}
+}

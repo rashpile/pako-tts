@@ -2,11 +2,12 @@ package domain
 
 // VoiceSettings contains voice customization parameters.
 type VoiceSettings struct {
-	Stability       *float64 `json:"stability,omitempty"`
-	SimilarityBoost *float64 `json:"similarity_boost,omitempty"`
-	Style           *float64 `json:"style,omitempty"`
-	Speed           *float64 `json:"speed,omitempty"`
-	UseSpeakerBoost *bool    `json:"use_speaker_boost,omitempty"`
+	Stability          *float64 `json:"stability,omitempty"`
+	SimilarityBoost    *float64 `json:"similarity_boost,omitempty"`
+	Style              *float64 `json:"style,omitempty"`
+	Speed              *float64 `json:"speed,omitempty"`
+	UseSpeakerBoost    *bool    `json:"use_speaker_boost,omitempty"`
+	StyleInstructions  string   `json:"style_instructions,omitempty"`
 }
 
 // Voice represents an available voice option.
@@ -73,6 +74,14 @@ func (v *VoiceSettings) Merge(other *VoiceSettings) *VoiceSettings {
 		result.UseSpeakerBoost = other.UseSpeakerBoost
 	} else if v != nil {
 		result.UseSpeakerBoost = v.UseSpeakerBoost
+	}
+
+	// StyleInstructions uses non-empty string (not pointer) — "unset" and "explicitly empty"
+	// are indistinguishable, which is acceptable for a free-text directive.
+	if other.StyleInstructions != "" {
+		result.StyleInstructions = other.StyleInstructions
+	} else if v != nil {
+		result.StyleInstructions = v.StyleInstructions
 	}
 
 	return result
