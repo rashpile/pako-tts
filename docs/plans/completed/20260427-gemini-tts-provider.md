@@ -262,11 +262,11 @@ if len(parts) > 0 {
 - Modify: `README.md`
 - Move: `docs/plans/20260427-gemini-tts-provider.md` → `docs/plans/completed/`
 
-- [ ] create `docs/gemini.md` (parallel to `docs/elevenlabs.md`) covering: model id, voice list (30 names), style instructions (config + per-request), language handling (auto-detect + ISO injection), audio tags pass-through (`[whispers]`, `[laughs]`, etc.), output format note (PCM native, server-side WAV/MP3 transcode), token limits, auth, sample request, **`IsAvailable` caveat** (connectivity-only — invalid API key may still report `true` because the Gemini models endpoint is publicly readable), **UI behavior note** (Gemini voices appear with blank language because they are language-agnostic — the user must set `language_code` per request to control language)
-- [ ] update `README.md`: add `gemini` to providers list and provide a sample config block (api_key from env, model_id, default_style)
-- [ ] mark all checkboxes complete in this plan
-- [ ] move plan to `docs/plans/completed/20260427-gemini-tts-provider.md`
-- [ ] run `make test` one last time — full suite green
+- [x] create `docs/gemini.md` (parallel to `docs/elevenlabs.md`) covering: model id, voice list (30 names), style instructions (config + per-request), language handling (auto-detect + ISO injection), audio tags pass-through (`[whispers]`, `[laughs]`, etc.), output format note (PCM native, server-side WAV/MP3 transcode), token limits, auth, sample request, **`IsAvailable` caveat** (connectivity-only — invalid API key may still report `true` because the Gemini models endpoint is publicly readable), **UI behavior note** (Gemini voices appear with blank language because they are language-agnostic — the user must set `language_code` per request to control language)
+- [x] update `README.md`: add `gemini` to providers list and provide a sample config block (api_key from env, model_id, default_style)
+- [x] mark all checkboxes complete in this plan
+- [x] move plan to `docs/plans/completed/20260427-gemini-tts-provider.md`
+- [x] run `make test` one last time — full suite green
 
 ## Post-Completion
 

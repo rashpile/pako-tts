@@ -78,6 +78,20 @@ A simple browser UI is available at [`/ui/`](http://localhost:8080/ui/) for tryi
 Provider-specific docs (parameters, voice settings, examples, known limitations):
 
 - **[ElevenLabs](docs/elevenlabs.md)** — voice settings (stability, similarity_boost, style, use_speaker_boost), output formats, examples
+- **[Gemini](docs/gemini.md)** — 30 prebuilt voices, 72 languages, free-text style instructions, server-side WAV/MP3 transcode from PCM
+
+### Sample Gemini config
+
+```yaml
+providers:
+  default: "gemini"
+  list:
+    - name: "gemini"
+      type: "gemini"
+      api_key: "${GEMINI_API_KEY}"
+      model_id: "gemini-3.1-flash-tts-preview"  # optional; this is the default
+      default_style: "warm, conversational"       # optional; per-request style overrides this
+```
 
 ## Usage Examples
 
