@@ -335,6 +335,56 @@ func TestProvider_Synthesize_DefaultFormatIsMP3(t *testing.T) {
 	}
 }
 
+func TestProvider_Synthesize_UnknownVoiceIDFallsBackToDefault(t *testing.T) {
+	var capturedVoice string
+	client, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		var req TTSRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err == nil {
+			capturedVoice = req.GenerationConfig.SpeechConfig.VoiceConfig.PrebuiltVoiceConfig.VoiceName
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(audioResponse(t, silentPCM(4800))))
+	})
+	defer srv.Close()
+
+	p := &Provider{client: client, defaultModelID: defaultModelID}
+	_, err := p.Synthesize(context.Background(), &domain.SynthesisRequest{
+		Text:    "hello",
+		VoiceID: "pNInz6obpgDQGcFmaJgB", // ElevenLabs ID injected by handler default
+	})
+	if err != nil {
+		t.Fatalf("unexpected error for non-Gemini voice ID: %v", err)
+	}
+	if capturedVoice != defaultVoiceName {
+		t.Errorf("expected fallback to default voice %q, got %q", defaultVoiceName, capturedVoice)
+	}
+}
+
+func TestProvider_Synthesize_EmptyVoiceIDUsesDefault(t *testing.T) {
+	var capturedVoice string
+	client, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		var req TTSRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err == nil {
+			capturedVoice = req.GenerationConfig.SpeechConfig.VoiceConfig.PrebuiltVoiceConfig.VoiceName
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(audioResponse(t, silentPCM(4800))))
+	})
+	defer srv.Close()
+
+	p := &Provider{client: client, defaultModelID: defaultModelID}
+	_, err := p.Synthesize(context.Background(), &domain.SynthesisRequest{
+		Text:    "hello",
+		VoiceID: "",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if capturedVoice != defaultVoiceName {
+		t.Errorf("expected default voice %q, got %q", defaultVoiceName, capturedVoice)
+	}
+}
+
 func TestProvider_Synthesize_UpstreamErrorPropagates(t *testing.T) {
 	client, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":{"message":"quota exceeded"}}`, http.StatusTooManyRequests)

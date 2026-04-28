@@ -77,7 +77,9 @@ func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest)
 	}
 
 	voiceID := req.VoiceID
-	if !validVoiceIDs[voiceID] {
+	if voiceID == "" || !validVoiceIDs[voiceID] {
+		// Fall back to the Gemini default when the voice ID is empty or is not a
+		// known Gemini voice (e.g. an ElevenLabs ID injected by the global default).
 		voiceID = defaultVoiceName
 	}
 
@@ -152,7 +154,7 @@ func (p *Provider) ListModels(_ context.Context) ([]domain.Model, error) {
 
 // IsAvailable checks connectivity to the Gemini API (connectivity-only; see CheckHealth caveat).
 func (p *Provider) IsAvailable(ctx context.Context) bool {
-	return p.client.CheckHealth(ctx)
+	return p.client.CheckHealth(ctx, p.defaultModelID)
 }
 
 // MaxConcurrent returns the maximum number of concurrent synthesis jobs.
