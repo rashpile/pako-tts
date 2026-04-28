@@ -11,10 +11,12 @@ import (
 	"time"
 )
 
+const testAPIKey = "test-api-key"
+
 func newTestClient(t *testing.T, handler http.HandlerFunc) (*Client, *httptest.Server) {
 	t.Helper()
 	srv := httptest.NewServer(handler)
-	c := NewClientWithBaseURL("test-api-key", srv.URL)
+	c := NewClientWithBaseURL(testAPIKey, srv.URL)
 	c.httpClient = &http.Client{Timeout: 5 * time.Second}
 	return c, srv
 }
@@ -215,14 +217,18 @@ func TestGenerateAudio_NetworkError(t *testing.T) {
 	}
 }
 
-// TestCheckHealth_OK verifies true is returned on HTTP 200.
+// TestCheckHealth_OK verifies true is returned on HTTP 200 and the API key header is sent.
 func TestCheckHealth_OK(t *testing.T) {
 	client, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("x-goog-api-key") != testAPIKey {
+			http.Error(w, "missing api key", http.StatusUnauthorized)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 	})
 	defer srv.Close()
 
-	if !client.CheckHealth(context.Background()) {
+	if !client.CheckHealth(context.Background(), defaultModelID) {
 		t.Error("expected CheckHealth to return true on 200")
 	}
 }
@@ -234,7 +240,7 @@ func TestCheckHealth_Unauthorized(t *testing.T) {
 	})
 	defer srv.Close()
 
-	if client.CheckHealth(context.Background()) {
+	if client.CheckHealth(context.Background(), defaultModelID) {
 		t.Error("expected CheckHealth to return false on 401")
 	}
 }
@@ -244,7 +250,7 @@ func TestCheckHealth_NetworkError(t *testing.T) {
 	c := NewClientWithBaseURL("test-key", "http://127.0.0.1:1")
 	c.httpClient = &http.Client{Timeout: 500 * time.Millisecond}
 
-	if c.CheckHealth(context.Background()) {
+	if c.CheckHealth(context.Background(), defaultModelID) {
 		t.Error("expected CheckHealth to return false on network error")
 	}
 }

@@ -172,16 +172,17 @@ func (c *Client) GenerateAudio(ctx context.Context, model, prompt, voiceName str
 	return pcm, nil
 }
 
-// CheckHealth checks if the Gemini API is reachable.
+// CheckHealth checks if the Gemini API is reachable by probing the given model endpoint.
 // This is connectivity-only: an invalid API key may still return true because the
 // models endpoint is publicly readable.
-func (c *Client) CheckHealth(ctx context.Context) bool {
-	url := fmt.Sprintf("%s/models/%s", c.baseURL, defaultModelID)
+func (c *Client) CheckHealth(ctx context.Context, model string) bool {
+	url := fmt.Sprintf("%s/models/%s", c.baseURL, neturl.PathEscape(model))
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return false
 	}
+	httpReq.Header.Set("x-goog-api-key", c.apiKey)
 
 	resp, err := c.healthClient.Do(httpReq)
 	if err != nil {
