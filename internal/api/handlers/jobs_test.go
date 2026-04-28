@@ -144,6 +144,54 @@ func TestJobsHandler_SubmitJob_PassesLanguageCode(t *testing.T) {
 	}
 }
 
+func TestJobsHandler_SubmitJob_PassesStyleInstructions(t *testing.T) {
+	logger := testLogger()
+	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}
+	mockRegistry := mocks.NewMockProviderRegistry(mockProvider)
+	queue := memory.NewQueue(10)
+	mockStorage := mocks.NewMockStorage()
+
+	handler := NewJobsHandler(mockRegistry, queue, mockStorage, logger, "default-voice", 24)
+
+	reqBody := JobCreateRequest{
+		Text:    "Hello",
+		VoiceID: "voice123",
+		VoiceSettings: &domain.VoiceSettings{
+			StyleInstructions: "warm and slow",
+		},
+	}
+	body, _ := json.Marshal(reqBody)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/jobs", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	handler.SubmitJob(w, req)
+
+	resp := w.Result()
+	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d", resp.StatusCode)
+	}
+
+	var jobResp JobCreateResponse
+	if err := json.NewDecoder(resp.Body).Decode(&jobResp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	stored, err := queue.GetJob(context.Background(), jobResp.JobID)
+	if err != nil {
+		t.Fatalf("failed to get stored job: %v", err)
+	}
+	if stored.VoiceSettings == nil {
+		t.Fatal("expected stored job.VoiceSettings to be set")
+	}
+	if stored.VoiceSettings.StyleInstructions != "warm and slow" {
+		t.Errorf("expected stored job.VoiceSettings.StyleInstructions %q, got %q", "warm and slow", stored.VoiceSettings.StyleInstructions)
+	}
+}
+
 func TestJobsHandler_SubmitJob_InvalidJSON(t *testing.T) {
 	logger := testLogger()
 	mockProvider := &mocks.MockProvider{NameValue: "test-provider"}

@@ -4,6 +4,7 @@ package registry
 import (
 	"github.com/pako-tts/server/internal/domain"
 	"github.com/pako-tts/server/internal/provider/elevenlabs"
+	"github.com/pako-tts/server/internal/provider/gemini"
 	"github.com/pako-tts/server/internal/provider/selfhosted"
 	"github.com/pako-tts/server/pkg/config"
 )
@@ -19,6 +20,7 @@ func init() {
 	// Register built-in provider factories
 	RegisterFactory("elevenlabs", elevenlabsFactory)
 	RegisterFactory("selfhosted", selfhostedFactory)
+	RegisterFactory("gemini", geminiFactory)
 }
 
 // RegisterFactory registers a provider factory for a given type.
@@ -40,4 +42,9 @@ func elevenlabsFactory(cfg config.ProviderConfig, isDefault bool) (domain.TTSPro
 // selfhostedFactory creates a selfhosted provider from config.
 func selfhostedFactory(cfg config.ProviderConfig, isDefault bool) (domain.TTSProvider, error) {
 	return selfhosted.NewProviderFromConfig(cfg, isDefault)
+}
+
+// geminiFactory creates a Gemini provider from config.
+func geminiFactory(cfg config.ProviderConfig, isDefault bool) (domain.TTSProvider, error) {
+	return gemini.NewProviderFromConfig(cfg, isDefault)
 }

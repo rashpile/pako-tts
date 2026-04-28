@@ -1,6 +1,6 @@
 # Pako TTS
 
-High-performance Text-to-Speech API service powered by ElevenLabs.
+High-performance Text-to-Speech API service supporting multiple providers (ElevenLabs, Gemini Flash TTS, and self-hosted backends).
 
 ## Features
 
@@ -16,7 +16,9 @@ High-performance Text-to-Speech API service powered by ElevenLabs.
 ### Prerequisites
 
 - Go 1.23+
-- ElevenLabs API key
+- ElevenLabs API key (if using the ElevenLabs provider)
+- Gemini API key (if using the Gemini provider)
+- ffmpeg (required when running outside Docker and using the Gemini provider)
 
 ### Configuration
 
@@ -78,6 +80,20 @@ A simple browser UI is available at [`/ui/`](http://localhost:8080/ui/) for tryi
 Provider-specific docs (parameters, voice settings, examples, known limitations):
 
 - **[ElevenLabs](docs/elevenlabs.md)** — voice settings (stability, similarity_boost, style, use_speaker_boost), output formats, examples
+- **[Gemini](docs/gemini.md)** — 30 prebuilt voices, 72 languages, free-text style instructions, server-side WAV/MP3 transcode from PCM
+
+### Sample Gemini config
+
+```yaml
+providers:
+  default: "gemini"
+  list:
+    - name: "gemini"
+      type: "gemini"
+      api_key: "${GEMINI_API_KEY}"
+      model_id: "gemini-3.1-flash-tts-preview"  # optional; this is the default
+      default_style: "warm, conversational"       # optional; per-request style overrides this
+```
 
 ## Usage Examples
 
@@ -125,7 +141,8 @@ make build
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ELEVENLABS_API_KEY` | - | ElevenLabs API key (required) |
+| `ELEVENLABS_API_KEY` | - | ElevenLabs API key (if using the ElevenLabs provider) |
+| `GEMINI_API_KEY` | - | Gemini API key; referenced in config.yaml as `api_key: "${GEMINI_API_KEY}"` (if using the Gemini provider) |
 | `HTTP_PORT` | 8080 | Server port |
 | `DEFAULT_VOICE_ID` | pNInz6obpgDQGcFmaJgB | Default voice |
 | `MAX_SYNC_TEXT_LENGTH` | 5000 | Max chars for sync endpoint |

@@ -38,6 +38,7 @@ type ProviderConfig struct {
 	TTSEndpoint    string        `mapstructure:"tts_endpoint"`     // For selfhosted
 	VoicesEndpoint string        `mapstructure:"voices_endpoint"`  // For selfhosted
 	HealthEndpoint string        `mapstructure:"health_endpoint"`  // For selfhosted
+	DefaultStyle   string        `mapstructure:"default_style"`    // For gemini
 }
 
 // ServerConfig holds HTTP server configuration.
@@ -226,6 +227,7 @@ func loadProvidersConfig(v *viper.Viper, cfg *Config) error {
 			TTSEndpoint:    getString(providerMap, "tts_endpoint"),
 			VoicesEndpoint: getString(providerMap, "voices_endpoint"),
 			HealthEndpoint: getString(providerMap, "health_endpoint"),
+			DefaultStyle:   expandEnvVars(getString(providerMap, "default_style")),
 		}
 
 		// Set defaults for selfhosted endpoints
