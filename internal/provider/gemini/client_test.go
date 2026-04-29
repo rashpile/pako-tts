@@ -47,6 +47,15 @@ func audioResponse(t *testing.T, pcm []byte) string {
 	return string(b)
 }
 
+func responseJSON(t *testing.T, resp TTSResponse) string {
+	t.Helper()
+	b, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatalf("marshal response: %v", err)
+	}
+	return string(b)
+}
+
 // TestGenerateAudio_HappyPath verifies decoded PCM matches the server-provided base64.
 func TestGenerateAudio_HappyPath(t *testing.T) {
 	expected := cannedPCM()
@@ -190,9 +199,130 @@ func TestGenerateAudio_MissingInlineData(t *testing.T) {
 	}
 }
 
+func TestGenerateAudio_AudioInSecondPart(t *testing.T) {
+	expected := cannedPCM()
+	encoded := base64.StdEncoding.EncodeToString(expected)
+	resp := TTSResponse{
+		Candidates: []Candidate{
+			{
+				Content: Content{
+					Parts: []Part{
+						{Text: "preface"},
+						{InlineData: &InlineData{MimeType: "audio/pcm", Data: encoded}},
+					},
+				},
+				FinishReason: "STOP",
+			},
+		},
+	}
+	client, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(responseJSON(t, resp)))
+	})
+	defer srv.Close()
+
+	got, err := client.GenerateAudio(context.Background(), "test-model", "hello", "Despina")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(got) != string(expected) {
+		t.Errorf("PCM mismatch: got %v, want %v", got, expected)
+	}
+}
+
+func TestGenerateAudio_AudioInSecondCandidate(t *testing.T) {
+	expected := cannedPCM()
+	encoded := base64.StdEncoding.EncodeToString(expected)
+	resp := TTSResponse{
+		Candidates: []Candidate{
+			{
+				Content: Content{
+					Parts: []Part{{Text: "first candidate has text only"}},
+				},
+				FinishReason: "STOP",
+			},
+			{
+				Content: Content{
+					Parts: []Part{{InlineData: &InlineData{MimeType: "audio/pcm", Data: encoded}}},
+				},
+				FinishReason: "STOP",
+			},
+		},
+	}
+	client, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(responseJSON(t, resp)))
+	})
+	defer srv.Close()
+
+	got, err := client.GenerateAudio(context.Background(), "test-model", "hello", "Despina")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(got) != string(expected) {
+		t.Errorf("PCM mismatch: got %v, want %v", got, expected)
+	}
+}
+
+func TestGenerateAudio_TextOnlyResponseIncludesDiagnostics(t *testing.T) {
+	resp := TTSResponse{
+		Candidates: []Candidate{
+			{
+				Content: Content{
+					Parts: []Part{{Text: "Secrete si Surprize in Gradina cu Hortensii"}},
+				},
+				FinishReason:  "STOP",
+				FinishMessage: "Model produced text only",
+			},
+		},
+	}
+	client, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(responseJSON(t, resp)))
+	})
+	defer srv.Close()
+
+	_, err := client.GenerateAudio(context.Background(), "test-model", "Secrete și Surprize în Grădina cu Hortensii", "Despina")
+	if err == nil {
+		t.Fatal("expected error for text-only response, got nil")
+	}
+	if !strings.Contains(err.Error(), "finish_reasons=STOP") {
+		t.Errorf("expected finish reason in error, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), `text_snippet="Secrete si Surprize in Gradina cu Hortensii"`) {
+		t.Errorf("expected text snippet in error, got: %v", err)
+	}
+}
+
+func TestGenerateAudio_EmptyInlineDataIncludesDiagnostics(t *testing.T) {
+	resp := TTSResponse{
+		Candidates: []Candidate{
+			{
+				Content: Content{
+					Parts: []Part{{InlineData: &InlineData{MimeType: "audio/pcm", Data: ""}}},
+				},
+				FinishReason: "STOP",
+			},
+		},
+	}
+	client, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(responseJSON(t, resp)))
+	})
+	defer srv.Close()
+
+	_, err := client.GenerateAudio(context.Background(), "test-model", "hello", "Despina")
+	if err == nil {
+		t.Fatal("expected error for empty inlineData, got nil")
+	}
+	if !strings.Contains(err.Error(), "empty_audio_parts=1") {
+		t.Errorf("expected empty audio part count in error, got: %v", err)
+	}
+}
+
 // TestGenerateAudio_EmptyCandidates verifies empty candidates array returns an error.
 func TestGenerateAudio_EmptyCandidates(t *testing.T) {
-	emptyResp := `{"candidates":[]}`
+	emptyResp := `{"candidates":[],"promptFeedback":{"blockReason":"OTHER"}}`
 	client, srv := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(emptyResp))
@@ -202,6 +332,9 @@ func TestGenerateAudio_EmptyCandidates(t *testing.T) {
 	_, err := client.GenerateAudio(context.Background(), "test-model", "hello", "Despina")
 	if err == nil {
 		t.Fatal("expected error for empty candidates, got nil")
+	}
+	if !strings.Contains(err.Error(), "prompt_block_reason=OTHER") {
+		t.Errorf("expected prompt block reason in error, got: %v", err)
 	}
 }
 

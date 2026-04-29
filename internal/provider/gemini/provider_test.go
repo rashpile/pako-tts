@@ -188,15 +188,16 @@ func TestProvider_ListModels_OneEntry(t *testing.T) {
 func TestBuildPrompt_NoLangNoStyle(t *testing.T) {
 	p := &Provider{}
 	got := p.buildPrompt(&domain.SynthesisRequest{Text: "hello"})
-	if got != "hello" {
-		t.Errorf("expected bare text, got %q", got)
+	want := "Read text.\nText:\n<<<\nhello\n>>>"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }
 
 func TestBuildPrompt_LangOnly(t *testing.T) {
 	p := &Provider{}
 	got := p.buildPrompt(&domain.SynthesisRequest{Text: "salut", LanguageCode: "ro"})
-	want := "Speak in Romanian.\n\nsalut"
+	want := "Read text.\nText:\n<<<\nsalut\n>>>"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
@@ -205,7 +206,7 @@ func TestBuildPrompt_LangOnly(t *testing.T) {
 func TestBuildPrompt_StyleOnly_FromDefault(t *testing.T) {
 	p := &Provider{defaultStyle: "warm"}
 	got := p.buildPrompt(&domain.SynthesisRequest{Text: "hello"})
-	want := "Style: warm.\n\nhello"
+	want := "Read text.\nStyle: warm\nText:\n<<<\nhello\n>>>"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
@@ -218,7 +219,7 @@ func TestBuildPrompt_LangAndStyle(t *testing.T) {
 		LanguageCode: "fr",
 		Settings:     &domain.VoiceSettings{StyleInstructions: "cheerful"},
 	})
-	want := "Speak in French.\nStyle: cheerful.\n\nbonjour"
+	want := "Read text.\nStyle: cheerful\nText:\n<<<\nbonjour\n>>>"
 	if got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
@@ -252,8 +253,9 @@ func TestBuildPrompt_DefaultStyleUsedWhenRequestEmpty(t *testing.T) {
 func TestBuildPrompt_UnknownLangCodeOmitsDirective(t *testing.T) {
 	p := &Provider{}
 	got := p.buildPrompt(&domain.SynthesisRequest{Text: "hello", LanguageCode: "xx"})
-	if got != "hello" {
-		t.Errorf("expected bare text for unknown lang code, got %q", got)
+	want := "Read text.\nText:\n<<<\nhello\n>>>"
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }
 
@@ -443,7 +445,7 @@ func TestProvider_Synthesize_PromptSentToUpstream(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	wantPrompt := "Speak in English.\nStyle: calm.\n\nhello"
+	wantPrompt := "Read text.\nStyle: calm\nText:\n<<<\nhello\n>>>"
 	if capturedPrompt != wantPrompt {
 		t.Errorf("prompt: got %q, want %q", capturedPrompt, wantPrompt)
 	}

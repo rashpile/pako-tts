@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 	"sync/atomic"
 
 	"github.com/pako-tts/server/internal/audio/transcode"
@@ -112,17 +111,9 @@ func (p *Provider) Synthesize(ctx context.Context, req *domain.SynthesisRequest)
 	}, nil
 }
 
-// buildPrompt assembles the Gemini prompt: optional language directive, optional style
-// line, then the user text — per the prompt composition spec in Solution Overview.
+// buildPrompt frames the request as verbatim TTS input so short title-like text is
+// less likely to be treated as open-ended generation by Gemini.
 func (p *Provider) buildPrompt(req *domain.SynthesisRequest) string {
-	var parts []string
-
-	if req.LanguageCode != "" {
-		if name, ok := isoToName[req.LanguageCode]; ok {
-			parts = append(parts, "Speak in "+name+".")
-		}
-	}
-
 	style := ""
 	if req.Settings != nil {
 		style = req.Settings.StyleInstructions
@@ -130,14 +121,12 @@ func (p *Provider) buildPrompt(req *domain.SynthesisRequest) string {
 	if style == "" {
 		style = p.defaultStyle
 	}
-	if style != "" {
-		parts = append(parts, "Style: "+style+".")
-	}
 
-	if len(parts) == 0 {
-		return req.Text
+	prompt := "Read text."
+	if style != "" {
+		prompt += "\nStyle: " + style
 	}
-	return strings.Join(parts, "\n") + "\n\n" + req.Text
+	return fmt.Sprintf("%s\nText:\n<<<\n%s\n>>>", prompt, req.Text)
 }
 
 // ListVoices returns the static list of 30 prebuilt Gemini voices.

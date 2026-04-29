@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	neturl "net/url"
+	"strings"
 	"time"
 )
 
@@ -19,9 +20,9 @@ const (
 
 // Client is an HTTP client for the Gemini API.
 type Client struct {
-	apiKey      string
-	baseURL     string
-	httpClient  *http.Client
+	apiKey       string
+	baseURL      string
+	httpClient   *http.Client
 	healthClient *http.Client
 }
 
@@ -52,6 +53,7 @@ type TTSRequest struct {
 
 // Content holds a list of parts for the Gemini API.
 type Content struct {
+	Role  string `json:"role,omitempty"`
 	Parts []Part `json:"parts"`
 }
 
@@ -90,12 +92,20 @@ type PrebuiltVoiceConfig struct {
 
 // TTSResponse is the JSON response from a Gemini generateContent call.
 type TTSResponse struct {
-	Candidates []Candidate `json:"candidates"`
+	Candidates     []Candidate     `json:"candidates"`
+	PromptFeedback *PromptFeedback `json:"promptFeedback,omitempty"`
 }
 
 // Candidate is a single response candidate.
 type Candidate struct {
-	Content Content `json:"content"`
+	Content       Content `json:"content"`
+	FinishReason  string  `json:"finishReason,omitempty"`
+	FinishMessage string  `json:"finishMessage,omitempty"`
+}
+
+// PromptFeedback describes why Gemini returned no candidates for a prompt.
+type PromptFeedback struct {
+	BlockReason string `json:"blockReason,omitempty"`
 }
 
 // GenerateAudio calls the Gemini generateContent endpoint and returns raw PCM bytes.
@@ -158,13 +168,12 @@ func (c *Client) GenerateAudio(ctx context.Context, model, prompt, voiceName str
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	if len(ttsResp.Candidates) == 0 ||
-		len(ttsResp.Candidates[0].Content.Parts) == 0 ||
-		ttsResp.Candidates[0].Content.Parts[0].InlineData == nil {
-		return nil, fmt.Errorf("gemini API returned no audio data")
+	audioData, diag := findInlineAudio(ttsResp)
+	if audioData == "" {
+		return nil, fmt.Errorf("gemini API returned no audio data (%s)", diag)
 	}
 
-	pcm, err := base64.StdEncoding.DecodeString(ttsResp.Candidates[0].Content.Parts[0].InlineData.Data)
+	pcm, err := base64.StdEncoding.DecodeString(audioData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode audio data: %w", err)
 	}
@@ -192,4 +201,63 @@ func (c *Client) CheckHealth(ctx context.Context, model string) bool {
 	_, _ = io.Copy(io.Discard, resp.Body)
 
 	return resp.StatusCode == http.StatusOK
+}
+
+func findInlineAudio(resp TTSResponse) (string, string) {
+	emptyAudioParts := 0
+	finishReasons := make([]string, 0, len(resp.Candidates))
+	firstTextSnippet := ""
+	firstFinishMessage := ""
+
+	for _, candidate := range resp.Candidates {
+		if candidate.FinishReason != "" {
+			finishReasons = append(finishReasons, candidate.FinishReason)
+		}
+		if firstFinishMessage == "" && candidate.FinishMessage != "" {
+			firstFinishMessage = candidate.FinishMessage
+		}
+
+		for _, part := range candidate.Content.Parts {
+			if part.InlineData != nil {
+				if strings.TrimSpace(part.InlineData.Data) != "" {
+					return part.InlineData.Data, ""
+				}
+				emptyAudioParts++
+			}
+			if firstTextSnippet == "" && strings.TrimSpace(part.Text) != "" {
+				firstTextSnippet = compactWhitespace(part.Text)
+			}
+		}
+	}
+
+	diag := []string{fmt.Sprintf("candidates=%d", len(resp.Candidates))}
+	if len(finishReasons) > 0 {
+		diag = append(diag, "finish_reasons="+strings.Join(finishReasons, ","))
+	}
+	if resp.PromptFeedback != nil && resp.PromptFeedback.BlockReason != "" {
+		diag = append(diag, "prompt_block_reason="+resp.PromptFeedback.BlockReason)
+	}
+	if emptyAudioParts > 0 {
+		diag = append(diag, fmt.Sprintf("empty_audio_parts=%d", emptyAudioParts))
+	}
+	if firstFinishMessage != "" {
+		diag = append(diag, fmt.Sprintf("finish_message=%q", truncateForError(compactWhitespace(firstFinishMessage), 120)))
+	}
+	if firstTextSnippet != "" {
+		diag = append(diag, fmt.Sprintf("text_snippet=%q", truncateForError(firstTextSnippet, 120)))
+	}
+
+	return "", strings.Join(diag, ", ")
+}
+
+func compactWhitespace(s string) string {
+	return strings.Join(strings.Fields(s), " ")
+}
+
+func truncateForError(s string, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
+		return s
+	}
+	return string(runes[:maxRunes]) + "..."
 }
